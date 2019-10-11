@@ -251,6 +251,8 @@ class YolactRos:
 
             colors = torch.cat(color_list, dim=0)
             num_dets_to_consider = len(color_list)
+            print(num_dets_to_consider)
+
             masks = masks[:num_dets_to_consider, :, :, None]
             masks_color = masks.repeat(1, 1, 1, 3) * colors * mask_alpha
 
@@ -285,6 +287,7 @@ class YolactRos:
 
                 if self.args.display_text:
                     text_str = '%s: %.2f' % (_class, score) if self.args.display_scores else _class
+                    print(text_str)
 
                     font_face = cv2.FONT_HERSHEY_DUPLEX
                     font_scale = 0.6
