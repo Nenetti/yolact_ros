@@ -222,6 +222,7 @@ class YolactRos:
         # Also keeps track of a per-gpu color cache for maximum speed
         def get_color(j, on_gpu=None):
             color_idx = (classes[j] * 5 if class_color else j * 5) % len(COLORS)
+            _class = cfg.dataset.class_names[classes[j]]
 
             if on_gpu is not None and color_idx in self.color_cache[on_gpu]:
                 return self.color_cache[on_gpu][color_idx]
@@ -233,7 +234,10 @@ class YolactRos:
                 if on_gpu is not None:
                     color = torch.Tensor(color).to(on_gpu).float() / 255.
                     self.color_cache[on_gpu][color_idx] = color
-                return color
+                if _class == "refrigerator":
+                    return color * 0
+                else:
+                    return color * mask_alpha
 
         # First, draw the masks on the GPU where we can do it really fast
         # Beware: very fast but possibly unintelligible mask-drawing code ahead
@@ -244,7 +248,7 @@ class YolactRos:
 
             # Prepare the RGB images for each mask given their color (size [num_dets, h, w, 1])
             colors = torch.cat([get_color(j, on_gpu=img_gpu.device.index).view(1, 1, 1, 3) for j in range(num_dets_to_consider)], dim=0)
-            masks_color = masks.repeat(1, 1, 1, 3) * colors * mask_alpha
+            masks_color = masks.repeat(1, 1, 1, 3) * colors
 
             # This is 1 everywhere except for 1-mask_alpha where the mask is
             inv_alph_masks = masks * (-mask_alpha) + 1
@@ -277,7 +281,6 @@ class YolactRos:
 
                 if self.args.display_text:
                     text_str = '%s: %.2f' % (_class, score) if self.args.display_scores else _class
-
 
                     font_face = cv2.FONT_HERSHEY_DUPLEX
                     font_scale = 0.6
