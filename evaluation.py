@@ -175,7 +175,7 @@ class YolactRos:
         preds = net(batch)
 
         start = time.time()
-        img_numpy = self.prep_display(preds, frame, None, None, undo_transform=False)
+        img_numpy = self.prep_display(preds, frame, None, None, undo_transform=False, mask_alpha=1.0)
         elapsed_time = time.time() - start
         print("elapsed_time:{0}".format(elapsed_time) + "[sec]")
 
@@ -270,9 +270,8 @@ class YolactRos:
                 color = get_color(j)
                 score = scores[j]
                 _class = cfg.dataset.class_names[classes[j]]
-                if _class == "refrigerator":
-                    continue
-
+                # if _class == "refrigerator":
+                #     continue
                 if self.args.display_bboxes:
                     cv2.rectangle(img_numpy, (x1, y1), (x2, y2), color, 1)
 
