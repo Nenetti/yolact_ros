@@ -254,7 +254,6 @@ class YolactRos:
 
             masks = masks[:num_dets_to_consider, :, :, None]
             masks_color = masks.repeat(1, 1, 1, 3) * colors * mask_alpha
-            print(masks_color)
             # This is 1 everywhere except for 1-mask_alpha where the mask is
             inv_alph_masks = masks * (-mask_alpha) + 1
 
@@ -262,6 +261,7 @@ class YolactRos:
             #    for j in range(num_dets_to_consider):
             #        img_gpu = img_gpu * inv_alph_masks[j] + masks_color[j]
             masks_color_summand = masks_color[0]
+            print(masks_color_summand)
             if num_dets_to_consider > 1:
                 inv_alph_cumul = inv_alph_masks[:(num_dets_to_consider - 1)].cumprod(dim=0)
                 masks_color_cumul = masks_color[1:] * inv_alph_cumul
