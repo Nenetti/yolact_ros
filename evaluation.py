@@ -133,15 +133,17 @@ class YolactRos:
         self.coco_cats_inv = {}
         self.color_cache = defaultdict(lambda: {})
 
-        self.execute(args)
+        self.args = args
 
-    def execute(self, args):
+        self.execute()
 
-        model_path = SavePath.from_str(args.trained_model)
+    def execute(self):
+
+        model_path = SavePath.from_str(self.args.trained_model)
         # TODO: Bad practice? Probably want to do a name lookup instead.
-        args.config = model_path.model_name + '_config'
-        print('Config not specified. Parsed %s from the file name.\n' % args.config)
-        set_cfg(args.config)
+        self.args.config = model_path.model_name + '_config'
+        print('Config not specified. Parsed %s from the file name.\n' % self.args.config)
+        set_cfg(self.args.config)
 
         with torch.no_grad():
             if not os.path.exists('results'):
@@ -153,7 +155,7 @@ class YolactRos:
 
             print('Loading model...', end='')
             net = Yolact()
-            net.load_weights(args.trained_model)
+            net.load_weights(self.args.trained_model)
             net.eval()
             net = net.cuda()
 
@@ -162,10 +164,10 @@ class YolactRos:
             self.evaluate(net)
 
     def evaluate(self, net):
-        net.detect.use_fast_nms = args.fast_nms
-        cfg.mask_proto_debug = args.mask_proto_debug
+        net.detect.use_fast_nms = self.args.fast_nms
+        cfg.mask_proto_debug = self.args.mask_proto_debug
 
-        self.evalimage(net)
+        self.evalimage(net, self.args.image)
 
     def evalimage(self, net, path):
         frame = torch.from_numpy(cv2.imread(path)).cuda().float()
@@ -192,20 +194,20 @@ class YolactRos:
             h, w, _ = img.shape
 
         with timer.env('Postprocess'):
-            t = postprocess(dets_out, w, h, visualize_lincomb=args.display_lincomb,
-                            crop_masks=args.crop,
-                            score_threshold=args.score_threshold)
+            t = postprocess(dets_out, w, h, visualize_lincomb=self.args.display_lincomb,
+                            crop_masks=self.args.crop,
+                            score_threshold=self.args.score_threshold)
             torch.cuda.synchronize()
 
         with timer.env('Copy'):
             if cfg.eval_mask_branch:
                 # Masks are drawn on the GPU, so don't copy
-                masks = t[3][:args.top_k]
-            classes, scores, boxes = [x[:args.top_k].cpu().numpy() for x in t[:3]]
+                masks = t[3][:self.args.top_k]
+            classes, scores, boxes = [x[:self.args.top_k].cpu().numpy() for x in t[:3]]
 
-        num_dets_to_consider = min(args.top_k, classes.shape[0])
+        num_dets_to_consider = min(self.args.top_k, classes.shape[0])
         for j in range(num_dets_to_consider):
-            if scores[j] < args.score_threshold:
+            if scores[j] < self.args.score_threshold:
                 num_dets_to_consider = j
                 break
 
@@ -234,7 +236,7 @@ class YolactRos:
         # First, draw the masks on the GPU where we can do it really fast
         # Beware: very fast but possibly unintelligible mask-drawing code ahead
         # I wish I had access to OpenGL or Vulkan but alas, I guess Pytorch tensor operations will have to suffice
-        if args.display_masks and cfg.eval_mask_branch:
+        if self.args.display_masks and cfg.eval_mask_branch:
             # After this, mask is of size [num_dets, h, w, 1]
             masks = masks[:num_dets_to_consider, :, :, None]
 
@@ -260,18 +262,18 @@ class YolactRos:
         # Note, make sure this is a uint8 tensor or opencv will not anti alias text for whatever reason
         img_numpy = (img_gpu * 255).byte().cpu().numpy()
 
-        if args.display_text or args.display_bboxes:
+        if self.args.display_text or self.args.display_bboxes:
             for j in reversed(range(num_dets_to_consider)):
                 x1, y1, x2, y2 = boxes[j, :]
                 color = get_color(j)
                 score = scores[j]
 
-                if args.display_bboxes:
+                if self.args.display_bboxes:
                     cv2.rectangle(img_numpy, (x1, y1), (x2, y2), color, 1)
 
-                if args.display_text:
+                if self.args.display_text:
                     _class = cfg.dataset.class_names[classes[j]]
-                    text_str = '%s: %.2f' % (_class, score) if args.display_scores else _class
+                    text_str = '%s: %.2f' % (_class, score) if self.args.display_scores else _class
 
                     font_face = cv2.FONT_HERSHEY_DUPLEX
                     font_scale = 0.6
