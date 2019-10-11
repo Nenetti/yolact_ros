@@ -222,7 +222,6 @@ class YolactRos:
         # Also keeps track of a per-gpu color cache for maximum speed
         def get_color(j, on_gpu=None):
             color_idx = (classes[j] * 5 if class_color else j * 5) % len(COLORS)
-            _class = cfg.dataset.class_names[classes[j]]
 
             if on_gpu is not None and color_idx in self.color_cache[on_gpu]:
                 return self.color_cache[on_gpu][color_idx]
@@ -232,10 +231,7 @@ class YolactRos:
                     # The image might come in as RGB or BRG, depending
                     color = (color[2], color[1], color[0])
                 if on_gpu is not None:
-                    if _class == "refrigerator":
-                        color = torch.Tensor(color).to(on_gpu).float() / 255. - 1.0
-                    else:
-                        color = torch.Tensor(color).to(on_gpu).float() / 255.
+                    color = torch.Tensor(color).to(on_gpu).float() / 255.
                     self.color_cache[on_gpu][color_idx] = color
                 return color
 
@@ -247,7 +243,13 @@ class YolactRos:
             masks = masks[:num_dets_to_consider, :, :, None]
 
             # Prepare the RGB images for each mask given their color (size [num_dets, h, w, 1])
-            colors = torch.cat([get_color(j, on_gpu=img_gpu.device.index).view(1, 1, 1, 3) for j in range(num_dets_to_consider)], dim=0)
+            color_list = []
+            for j in range(num_dets_to_consider):
+                c = get_color(j, on_gpu=img_gpu.device.index).view(1, 1, 1, 3)
+                _class = cfg.dataset.class_names[classes[j]]
+                if _class != "refrigerator":
+                    color_list.append(c)
+            colors = torch.cat(color_list, dim=0)
             masks_color = masks.repeat(1, 1, 1, 3) * colors
 
             # This is 1 everywhere except for 1-mask_alpha where the mask is
