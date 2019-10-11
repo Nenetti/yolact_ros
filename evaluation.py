@@ -249,12 +249,12 @@ class YolactRos:
 
             # This is 1 everywhere except for 1-mask_alpha where the mask is
             inv_alph_masks = masks * (-mask_alpha) + 1
+            import pprint
             for j in range(num_dets_to_consider):
                 c = cfg.dataset.class_names[classes[j]]
                 if c == "refrigerator":
-                    inv_alph_masks[j] -= 1
-                    print(inv_alph_masks[j].size())
-                    print(inv_alph_masks[j])
+                    # inv_alph_masks[j] -= 1
+                    pprint.pprint(inv_alph_masks[j])
 
             # I did the math for this on pen and paper. This whole block should be equivalent to:
             #    for j in range(num_dets_to_consider):
