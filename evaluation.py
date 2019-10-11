@@ -218,6 +218,8 @@ class YolactRos:
             # No detections found so just output the original image
             return (img_gpu * 255).byte().cpu().numpy()
 
+        print(num_dets_to_consider)
+
         # Quick and dirty lambda for selecting the color for a particular index
         # Also keeps track of a per-gpu color cache for maximum speed
         def get_color(j, on_gpu=None):
@@ -247,7 +249,7 @@ class YolactRos:
             masks_color = masks.repeat(1, 1, 1, 3) * colors * mask_alpha
 
             # This is 1 everywhere except for 1-mask_alpha where the mask is
-            inv_alph_masks = masks * (0) + 1
+            inv_alph_masks = masks * (-mask_alpha) + 1
 
             # I did the math for this on pen and paper. This whole block should be equivalent to:
             #    for j in range(num_dets_to_consider):
