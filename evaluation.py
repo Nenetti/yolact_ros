@@ -253,7 +253,7 @@ class YolactRos:
             for j in range(num_dets_to_consider):
                 c = cfg.dataset.class_names[classes[j]]
                 if c == "refrigerator":
-                    masks_color[j] *= 0
+                    pass
 
             # I did the math for this on pen and paper. This whole block should be equivalent to:
             #    for j in range(num_dets_to_consider):
@@ -265,6 +265,9 @@ class YolactRos:
                 masks_color_summand += masks_color_cumul.sum(dim=0)
 
             img_gpu = img_gpu * inv_alph_masks.prod(dim=0) + masks_color_summand
+            print(img_gpu.size())
+            print(inv_alph_masks.prod(dim=0).size())
+            print(masks_color_summand.size())
 
         # Then draw the stuff that needs to be done on the cpu
         # Note, make sure this is a uint8 tensor or opencv will not anti alias text for whatever reason
