@@ -175,7 +175,7 @@ class YolactRos:
         preds = net(batch)
 
         start = time.time()
-        img_numpy = self.prep_display(preds, frame, None, None, undo_transform=False, mask_alpha=1.0)
+        img_numpy = self.prep_display(preds, frame, None, None, undo_transform=False)
         elapsed_time = time.time() - start
         print("elapsed_time:{0}".format(elapsed_time) + "[sec]")
 
@@ -277,6 +277,7 @@ class YolactRos:
 
                 if self.args.display_text:
                     text_str = '%s: %.2f' % (_class, score) if self.args.display_scores else _class
+
 
                     font_face = cv2.FONT_HERSHEY_DUPLEX
                     font_scale = 0.6
