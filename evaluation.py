@@ -252,12 +252,6 @@ class YolactRos:
 
             # I did the math for this on pen and paper. This whole block should be equivalent to:
 
-            for j in range(num_dets_to_consider):
-                c = cfg.dataset.class_names[classes[j]]
-                if c == "refrigerator":
-                    inv_alph_masks[j] *= 0
-                    masks_color[j] *= 0
-
             masks_color_summand = masks_color[0]
             if num_dets_to_consider > 1:
                 inv_alph_cumul = inv_alph_masks[:(num_dets_to_consider - 1)].cumprod(dim=0)
