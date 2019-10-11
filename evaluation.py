@@ -252,7 +252,7 @@ class YolactRos:
             for j in range(num_dets_to_consider):
                 c = cfg.dataset.class_names[classes[j]]
                 if c == "refrigerator":
-                    # inv_alph_masks[j] = inv_alph_masks[j] * 0
+                    inv_alph_masks[j] -= 1
                     print(inv_alph_masks[j].size())
                     print(inv_alph_masks[j])
 
