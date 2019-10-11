@@ -276,7 +276,8 @@ class YolactRos:
                 if self.args.display_text:
                     _class = cfg.dataset.class_names[classes[j]]
                     text_str = '%s: %.2f' % (_class, score) if self.args.display_scores else _class
-                    print(text_str)
+                    if _class == "refrigerator":
+                        continue
 
                     font_face = cv2.FONT_HERSHEY_DUPLEX
                     font_scale = 0.6
