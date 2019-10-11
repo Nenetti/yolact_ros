@@ -253,6 +253,7 @@ class YolactRos:
                 c = cfg.dataset.class_names[classes[j]]
                 if c == "refrigerator":
                     # inv_alph_masks[j] = inv_alph_masks[j] * 0
+                    print(inv_alph_masks[j].size())
                     print(inv_alph_masks[j])
 
             # I did the math for this on pen and paper. This whole block should be equivalent to:
