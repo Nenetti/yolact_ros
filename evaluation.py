@@ -246,16 +246,15 @@ class YolactRos:
             color_list = []
             for j in range(num_dets_to_consider):
                 c = get_color(j, on_gpu=img_gpu.device.index).view(1, 1, 1, 3)
-                if cfg.dataset.class_names[classes[j]] != "refrigerator":
-                    color_list.append(c)
+                # if cfg.dataset.class_names[classes[j]] != "refrigerator":
+                color_list.append(c)
 
             colors = torch.cat(color_list, dim=0)
             num_dets_to_consider = len(color_list)
-            print(num_dets_to_consider)
 
             masks = masks[:num_dets_to_consider, :, :, None]
             masks_color = masks.repeat(1, 1, 1, 3) * colors * mask_alpha
-
+            print(masks_color)
             # This is 1 everywhere except for 1-mask_alpha where the mask is
             inv_alph_masks = masks * (-mask_alpha) + 1
 
