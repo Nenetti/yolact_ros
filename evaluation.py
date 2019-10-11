@@ -264,7 +264,7 @@ class YolactRos:
                 masks_color_cumul = masks_color[1:] * inv_alph_cumul
                 masks_color_summand += masks_color_cumul.sum(dim=0)
 
-            img_gpu = img_gpu * inv_alph_masks.prod(dim=0) + masks_color_summand
+            img_gpu = img_gpu + masks_color_summand
             print(img_gpu.size())
             print(inv_alph_masks.prod(dim=0).size())
             print(masks_color_summand.size())
