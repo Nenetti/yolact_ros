@@ -232,12 +232,12 @@ class YolactRos:
                     # The image might come in as RGB or BRG, depending
                     color = (color[2], color[1], color[0])
                 if on_gpu is not None:
-                    color = torch.Tensor(color).to(on_gpu).float() / 255.
+                    if _class == "refrigerator":
+                        color = torch.Tensor(color).to(on_gpu).float() / 255. - 1.0
+                    else:
+                        color = torch.Tensor(color).to(on_gpu).float() / 255.
                     self.color_cache[on_gpu][color_idx] = color
-                if _class == "refrigerator":
-                    return (0.0, 0.0, 0.0)
-                else:
-                    return color
+                return color
 
         # First, draw the masks on the GPU where we can do it really fast
         # Beware: very fast but possibly unintelligible mask-drawing code ahead
