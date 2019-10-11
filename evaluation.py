@@ -250,7 +250,7 @@ class YolactRos:
                     color_list.append(c)
 
             colors = torch.cat(color_list, dim=0)
-
+            num_dets_to_consider = len(color_list)
             masks = masks[:num_dets_to_consider, :, :, None]
             masks_color = masks.repeat(1, 1, 1, 3) * colors * mask_alpha
 
