@@ -247,8 +247,7 @@ class YolactRos:
             for j in range(num_dets_to_consider):
                 c = get_color(j, on_gpu=img_gpu.device.index).view(1, 1, 1, 3)
                 _class = cfg.dataset.class_names[classes[j]]
-                if _class != "refrigerator":
-                    color_list.append(c)
+                color_list.append(c)
             colors = torch.cat(color_list, dim=0)
             masks_color = masks.repeat(1, 1, 1, 3) * colors
 
