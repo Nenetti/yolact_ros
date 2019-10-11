@@ -174,7 +174,10 @@ class YolactRos:
         batch = FastBaseTransform()(frame.unsqueeze(0))
         preds = net(batch)
 
+        start = time.time()
         img_numpy = self.prep_display(preds, frame, None, None, undo_transform=False)
+        elapsed_time = time.time() - start
+        print("elapsed_time:{0}".format(elapsed_time) + "[sec]")
 
         img_numpy = img_numpy[:, :, (2, 1, 0)]
 
