@@ -269,15 +269,15 @@ class YolactRos:
                 x1, y1, x2, y2 = boxes[j, :]
                 color = get_color(j)
                 score = scores[j]
+                _class = cfg.dataset.class_names[classes[j]]
+                if _class == "refrigerator":
+                    continue
 
                 if self.args.display_bboxes:
                     cv2.rectangle(img_numpy, (x1, y1), (x2, y2), color, 1)
 
                 if self.args.display_text:
-                    _class = cfg.dataset.class_names[classes[j]]
                     text_str = '%s: %.2f' % (_class, score) if self.args.display_scores else _class
-                    if _class == "refrigerator":
-                        continue
 
                     font_face = cv2.FONT_HERSHEY_DUPLEX
                     font_scale = 0.6
