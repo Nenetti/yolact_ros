@@ -242,26 +242,20 @@ class YolactRos:
             # After this, mask is of size [num_dets, h, w, 1]
 
             # Prepare the RGB images for each mask given their color (size [num_dets, h, w, 1])
-
-            color_list = []
-            for j in range(num_dets_to_consider):
-                c = get_color(j, on_gpu=img_gpu.device.index).view(1, 1, 1, 3)
-                # if cfg.dataset.class_names[classes[j]] != "refrigerator":
-                color_list.append(c)
-
-            colors = torch.cat(color_list, dim=0)
-            num_dets_to_consider = len(color_list)
+            colors = torch.cat([get_color(j, on_gpu=img_gpu.device.index).view(1, 1, 1, 3) for j in range(num_dets_to_consider)], dim=0)
 
             masks = masks[:num_dets_to_consider, :, :, None]
             masks_color = masks.repeat(1, 1, 1, 3) * colors * mask_alpha
+
             # This is 1 everywhere except for 1-mask_alpha where the mask is
             inv_alph_masks = masks * (-mask_alpha) + 1
+            # for j in range(num_dets_to_consider):
+            print(inv_alph_masks.size())
 
             # I did the math for this on pen and paper. This whole block should be equivalent to:
             #    for j in range(num_dets_to_consider):
             #        img_gpu = img_gpu * inv_alph_masks[j] + masks_color[j]
             masks_color_summand = masks_color[0]
-            print(inv_alph_masks)
             if num_dets_to_consider > 1:
                 inv_alph_cumul = inv_alph_masks[:(num_dets_to_consider - 1)].cumprod(dim=0)
                 masks_color_cumul = masks_color[1:] * inv_alph_cumul
@@ -286,7 +280,6 @@ class YolactRos:
 
                 if self.args.display_text:
                     text_str = '%s: %.2f' % (_class, score) if self.args.display_scores else _class
-                    print(text_str)
 
                     font_face = cv2.FONT_HERSHEY_DUPLEX
                     font_scale = 0.6
