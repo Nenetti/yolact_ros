@@ -600,7 +600,7 @@ yolact_base_config = coco_base_config.copy({
         'preapply_sqrt': False,
         'use_square_anchors': True, # This is for backward compatability with a bug
 
-        'pred_aspect_ratios': [ [[1, 1/2.0, 2]] ]*5,
+        'pred_aspect_ratios': [ [[1.0, 1/2.0, 2.0]] ]*5,
         'pred_scales': [[24], [48], [96], [192], [384]],
     }),
 

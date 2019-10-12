@@ -254,7 +254,6 @@ class PredictionModule(nn.Module):
                             # This is for backward compatability with a bug where I made everything square by accident
                             if cfg.backbone.use_square_anchors:
                                 h = w
-
                             prior_data += [x, y, w, h]
                 self.priors = torch.Tensor(prior_data).view(-1, 4)
                 self.last_conv_size = (conv_w, conv_h)

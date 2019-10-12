@@ -41,9 +41,11 @@ class Test:
         for segment in result.segments.segments:  # type: Segment
             indices_x = segment.mask_indices_x
             indices_y = segment.mask_indices_y
-            print(len(indices_x), len(indices_y))
             for x, y in zip(indices_x, indices_y):
                 cv_image[x, y] = 0, 0, 0
+
+        for segment in result.segments.segments:  # type: Segment
+            cv2.rectangle(cv_image, (segment.xmin, segment.ymin), (segment.xmax, segment.ymax), (255, 0, 0), 1)
 
         print("save")
         cv2.imwrite('/root/HSR/test1_s.png', cv_image)

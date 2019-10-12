@@ -109,7 +109,7 @@ class YolactRos:
 
         with timer.env("Postprocess"):
             t = postprocess(dets_out, w, h,
-                            crop_masks=False,
+                            crop_masks=True,
                             score_threshold=self.score_threshold)
             torch.cuda.synchronize()
 
@@ -137,81 +137,83 @@ class YolactRos:
             m = np.where(m[i] > 0)
             mask_indices[i] = m
 
-        # Quick and dirty lambda for selecting the color for a particular index
-        # Also keeps track of a per-gpu color cache for maximum speed
-        def get_color(j, on_gpu=None):
-            color_idx = (classes[j] * 5 if class_color else j * 5) % len(COLORS)
-
-            if on_gpu is not None and color_idx in self.color_cache[on_gpu]:
-                return self.color_cache[on_gpu][color_idx]
-            else:
-                color = COLORS[color_idx]
-                if not undo_transform:
-                    # The image might come in as RGB or BRG, depending
-                    color = (color[2], color[1], color[0])
-                if on_gpu is not None:
-                    color = torch.Tensor(color).to(on_gpu).float() / 255.
-                    self.color_cache[on_gpu][color_idx] = color
-                return color
-
-        # First, draw the masks on the GPU where we can do it really fast
-        # Beware: very fast but possibly unintelligible mask-drawing code ahead
-        # I wish I had access to OpenGL or Vulkan but alas, I guess Pytorch tensor operations will have to suffice
-        if cfg.eval_mask_branch:
-            # After this, mask is of size [num_dets, h, w, 1]
-
-            # Prepare the RGB images for each mask given their color (size [num_dets, h, w, 1])
-            colors = torch.cat([get_color(j, on_gpu=img_gpu.device.index).view(1, 1, 1, 3) for j in range(num_dets_to_consider)], dim=0)
-
-            masks = masks[:num_dets_to_consider, :, :, None]
-            masks_color = masks.repeat(1, 1, 1, 3) * colors * mask_alpha
-
-            # This is 1 everywhere except for 1-mask_alpha where the mask is
-            inv_alph_masks = masks * (-mask_alpha) + 1
-
-            # I did the math for this on pen and paper. This whole block should be equivalent to:
-
-            masks_color_summand = masks_color[0]
-            if num_dets_to_consider > 1:
-                inv_alph_cumul = inv_alph_masks[:(num_dets_to_consider - 1)].cumprod(dim=0)
-                masks_color_cumul = masks_color[1:] * inv_alph_cumul
-                masks_color_summand += masks_color_cumul.sum(dim=0)
-
-            img_gpu = img_gpu * inv_alph_masks.prod(dim=0) + masks_color_summand
-
-        # Then draw the stuff that needs to be done on the cpu
-        # Note, make sure this is a uint8 tensor or opencv will not anti alias text for whatever reason
-        img_numpy = (img_gpu * 255).byte().cpu().numpy()
-        for j in reversed(range(num_dets_to_consider)):
-            x1, y1, x2, y2 = boxes[j, :]
-            color = get_color(j)
-            score = scores[j]
-            _class = cfg.dataset.class_names[classes[j]]
-            print(_class)
-            # if _class == "refrigerator":
-            #     continue
-            cv2.rectangle(img_numpy, (x1, y1), (x2, y2), color, 1)
-
-            text_str = "%s: %.2f" % (_class, score)
-
-            font_face = cv2.FONT_HERSHEY_DUPLEX
-            font_scale = 0.6
-            font_thickness = 1
-
-            text_w, text_h = cv2.getTextSize(text_str, font_face, font_scale, font_thickness)[0]
-
-            text_pt = (x1, y1 - 3)
-            text_color = [255, 255, 255]
-
-            cv2.rectangle(img_numpy, (x1, y1), (x1 + text_w, y1 - text_h - 4), color, -1)
-            cv2.putText(img_numpy, text_str, text_pt, font_face, font_scale, text_color, font_thickness, cv2.LINE_AA)
-
-        img_numpy = img_numpy[:, :, (2, 1, 0)]
-
-        plt.imshow(img_numpy)
-        plt.title("0")
-        # plt.show()
         return self.create_msg(mask_indices, classes, scores, boxes)
+        #
+        # # Quick and dirty lambda for selecting the color for a particular index
+        # # Also keeps track of a per-gpu color cache for maximum speed
+        # def get_color(j, on_gpu=None):
+        #     color_idx = (classes[j] * 5 if class_color else j * 5) % len(COLORS)
+        #
+        #     if on_gpu is not None and color_idx in self.color_cache[on_gpu]:
+        #         return self.color_cache[on_gpu][color_idx]
+        #     else:
+        #         color = COLORS[color_idx]
+        #         if not undo_transform:
+        #             # The image might come in as RGB or BRG, depending
+        #             color = (color[2], color[1], color[0])
+        #         if on_gpu is not None:
+        #             color = torch.Tensor(color).to(on_gpu).float() / 255.
+        #             self.color_cache[on_gpu][color_idx] = color
+        #         return color
+        #
+        # # First, draw the masks on the GPU where we can do it really fast
+        # # Beware: very fast but possibly unintelligible mask-drawing code ahead
+        # # I wish I had access to OpenGL or Vulkan but alas, I guess Pytorch tensor operations will have to suffice
+        # if cfg.eval_mask_branch:
+        #     # After this, mask is of size [num_dets, h, w, 1]
+        #
+        #     # Prepare the RGB images for each mask given their color (size [num_dets, h, w, 1])
+        #     colors = torch.cat([get_color(j, on_gpu=img_gpu.device.index).view(1, 1, 1, 3) for j in range(num_dets_to_consider)], dim=0)
+        #
+        #     masks = masks[:num_dets_to_consider, :, :, None]
+        #     masks_color = masks.repeat(1, 1, 1, 3) * colors * mask_alpha
+        #
+        #     # This is 1 everywhere except for 1-mask_alpha where the mask is
+        #     inv_alph_masks = masks * (-mask_alpha) + 1
+        #
+        #     # I did the math for this on pen and paper. This whole block should be equivalent to:
+        #
+        #     masks_color_summand = masks_color[0]
+        #     if num_dets_to_consider > 1:
+        #         inv_alph_cumul = inv_alph_masks[:(num_dets_to_consider - 1)].cumprod(dim=0)
+        #         masks_color_cumul = masks_color[1:] * inv_alph_cumul
+        #         masks_color_summand += masks_color_cumul.sum(dim=0)
+        #
+        #     img_gpu = img_gpu * inv_alph_masks.prod(dim=0) + masks_color_summand
+        #
+        # # Then draw the stuff that needs to be done on the cpu
+        # # Note, make sure this is a uint8 tensor or opencv will not anti alias text for whatever reason
+        # img_numpy = (img_gpu * 255).byte().cpu().numpy()
+        # for j in reversed(range(num_dets_to_consider)):
+        #     x1, y1, x2, y2 = boxes[j, :]
+        #     color = get_color(j)
+        #     score = scores[j]
+        #     _class = cfg.dataset.class_names[classes[j]]
+        #     print(_class)
+        #     # if _class == "refrigerator":
+        #     #     continue
+        #     cv2.rectangle(img_numpy, (x1, y1), (x2, y2), color, 1)
+        #
+        #     text_str = "%s: %.2f" % (_class, score)
+        #
+        #     font_face = cv2.FONT_HERSHEY_DUPLEX
+        #     font_scale = 0.6
+        #     font_thickness = 1
+        #
+        #     text_w, text_h = cv2.getTextSize(text_str, font_face, font_scale, font_thickness)[0]
+        #
+        #     text_pt = (x1, y1 - 3)
+        #     text_color = [255, 255, 255]
+        #
+        #     cv2.rectangle(img_numpy, (x1, y1), (x1 + text_w, y1 - text_h - 4), color, -1)
+        #     cv2.putText(img_numpy, text_str, text_pt, font_face, font_scale, text_color, font_thickness, cv2.LINE_AA)
+        #
+        # img_numpy = img_numpy[:, :, (2, 1, 0)]
+        #
+        # plt.imshow(img_numpy)
+        # plt.title("0")
+        # plt.show()
+        # return self.create_msg(mask_indices, classes, scores, boxes)
 
     @staticmethod
     def create_msg(mask_indices, classes, scores, boxes):
