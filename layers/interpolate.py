@@ -8,7 +8,7 @@ class InterpolateModule(nn.Module):
 	"""
 
 	def __init__(self, *args, **kwdargs):
-		super().__init__()
+		super(InterpolateModule, self).__init__()
 
 		self.args = args
 		self.kwdargs = kwdargs

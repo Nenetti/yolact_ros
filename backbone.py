@@ -48,7 +48,7 @@ class ResNetBackbone(nn.Module):
     """ Adapted from torchvision.models.resnet """
 
     def __init__(self, layers, atrous_layers=[], block=Bottleneck, norm_layer=nn.BatchNorm2d):
-        super().__init__()
+        super(ResNetBackbone, self).__init__()
 
         # These will be populated by _make_layer
         self.num_base_layers = len(layers)
@@ -149,7 +149,7 @@ class ResNetBackbone(nn.Module):
 class ResNetBackboneGN(ResNetBackbone):
 
     def __init__(self, layers, num_groups=32):
-        super().__init__(layers, norm_layer=lambda x: nn.GroupNorm(num_groups, x))
+        super(ResNetBackboneGN, self).__init__(layers, norm_layer=lambda x: nn.GroupNorm(num_groups, x))
 
     def init_backbone(self, path):
         """ The path here comes from detectron. So we load it differently. """
@@ -211,7 +211,7 @@ def darknetconvlayer(in_channels, out_channels, *args, **kwdargs):
     Arguments are passed into the conv layer.
     """
     return nn.Sequential(
-        nn.Conv2d(in_channels, out_channels, *args, **kwdargs, bias=False),
+        nn.Conv2d(in_channels, out_channels, bias=False, *args, **kwdargs),
         nn.BatchNorm2d(out_channels),
         # Darknet uses 0.1 here.
         # See https://github.com/pjreddie/darknet/blob/680d3bde1924c8ee2d1c1dea54d3e56a05ca9a26/src/activations.h#L39
@@ -224,7 +224,7 @@ class DarkNetBlock(nn.Module):
     expansion = 2
 
     def __init__(self, in_channels, channels):
-        super().__init__()
+        super(DarkNetBlock, self).__init__()
 
         self.conv1 = darknetconvlayer(in_channels, channels,                  kernel_size=1)
         self.conv2 = darknetconvlayer(channels,    channels * self.expansion, kernel_size=3, padding=1)
@@ -244,7 +244,7 @@ class DarkNetBackbone(nn.Module):
     """
 
     def __init__(self, layers=[1, 2, 8, 8, 4], block=DarkNetBlock):
-        super().__init__()
+        super(DarkNetBackbone, self).__init__()
 
         # These will be populated by _make_layer
         self.num_base_layers = len(layers)
@@ -319,7 +319,7 @@ class VGGBackbone(nn.Module):
     """
 
     def __init__(self, cfg, extra_args=[], norm_layers=[]):
-        super().__init__()
+        super(VGGBackbone, self).__init__()
         
         self.channels = []
         self.layers = nn.ModuleList()

@@ -73,7 +73,7 @@ class ProgressBar():
 
         if num_bars != self.cur_num_bars:
             self.cur_num_bars = num_bars
-            self.string = '█' * num_bars + '░' * (self.length - num_bars)
+            self.string = '|' * num_bars + '|' * (self.length - num_bars)
     
     def __repr__(self):
         return self.string
@@ -98,17 +98,17 @@ class SavePath:
     What am I doing with my life?
     """
 
-    def __init__(self, model_name:str, epoch:int, iteration:int):
+    def __init__(self, model_name, epoch, iteration):
         self.model_name = model_name
         self.epoch = epoch
         self.iteration = iteration
 
-    def get_path(self, root:str=''):
+    def get_path(self, root=''):
         file_name = self.model_name + '_' + str(self.epoch) + '_' + str(self.iteration) + '.pth'
         return os.path.join(root, file_name)
 
     @staticmethod
-    def from_str(path:str):
+    def from_str(path):
         file_name = os.path.basename(path)
         
         if file_name.endswith('.pth'):

@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>yolact_ros</name>
+  <version>1.0.0</version>
+  <description>The 'em_spco_tidy_up' package enables probabilistic tidying using Spatial Concepts (SpaCoTy).</description>
+
+  <maintainer email="isobe.shota@em.ci.ritsumei.ac.jp">Shota Isobe</maintainer>
+  <license>MIT</license>
+  <url type="website">http://em.ci.ritsumei.ac.jp/</url>
+  <author email="isobe.shota@em.ci.ritsumei.ac.jp">Shota Isobe</author>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <depend>rospy</depend>
+  <depend>std_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>message_generation</depend>
+  <exec_depend>message_runtime</exec_depend>
+</package>

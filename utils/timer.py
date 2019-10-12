@@ -50,7 +50,7 @@ def start(fn_name, use_stack=True):
 		start(fn_name, use_stack=False)
 		_running_timer = fn_name
 	else:
-		_start_times[fn_name] = time.perf_counter()
+		_start_times[fn_name] = time.time()
 
 def stop(fn_name=None, use_stack=True):
 	"""
@@ -77,7 +77,7 @@ def stop(fn_name=None, use_stack=True):
 			print('Warning: timer stopped with no timer running!')
 	else:
 		if _start_times[fn_name] > -1:
-			_total_times[fn_name] += time.perf_counter() - _start_times[fn_name]
+			_total_times[fn_name] += time.time() - _start_times[fn_name]
 		else:
 			print('Warning: timer for %s stopped before starting!' % fn_name)
 

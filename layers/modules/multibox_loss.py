@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -413,7 +414,7 @@ class MultiBoxLoss(nn.Module):
         instance_t = instance_t.view(-1) # juuuust to make sure
 
         coeffs_norm = F.normalize(coeffs, dim=1)
-        cos_sim = coeffs_norm @ coeffs_norm.t()
+        cos_sim = np.matmul(coeffs_norm, coeffs_norm.t())
 
         inst_eq = (instance_t[:, None].expand_as(cos_sim) == instance_t[None, :].expand_as(cos_sim)).float()
 
@@ -507,7 +508,7 @@ class MultiBoxLoss(nn.Module):
             mask_t = downsampled_masks[:, :, pos_idx_t]          
 
             # Size: [mask_h, mask_w, num_pos]
-            pred_masks = proto_masks @ proto_coef.t()
+            pred_masks = np.matmul(proto_masks, proto_coef.t())
             pred_masks = cfg.mask_proto_mask_activation(pred_masks)
 
             if cfg.mask_proto_double_loss:

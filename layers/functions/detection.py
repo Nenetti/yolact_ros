@@ -113,8 +113,9 @@ class Detect(object):
         coeffs_norm = F.normalize(coeffs[idx], dim=1)
 
         # Compute the pairwise cosine similarity between the coefficients
-        cos_similarity = coeffs_norm @ coeffs_norm.t()
-        
+        # cos_similarity = coeffs_norm @ coeffs_norm.t()
+        cos_similarity = np.matmul(coeffs_norm, coeffs_norm.t())
+
         # Zero out the lower triangle of the cosine similarity matrix and diagonal
         cos_similarity.triu_(diagonal=1)
 
@@ -133,7 +134,7 @@ class Detect(object):
         
         return idx_out, idx_out.size(0)
 
-    def fast_nms(self, boxes, masks, scores, iou_threshold:float=0.5, top_k:int=200, second_threshold:bool=False):
+    def fast_nms(self, boxes, masks, scores, iou_threshold=0.5, top_k=200, second_threshold=False):
         scores, idx = scores.sort(1, descending=True)
 
         idx = idx[:, :top_k].contiguous()

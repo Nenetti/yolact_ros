@@ -95,9 +95,9 @@ class Config(object):
         for key, val in new_config_dict.items():
             self.__setattr__(key, val)
     
-    def print(self):
-        for k, v in vars(self).items():
-            print(k, ' = ', v)
+    # def print(self):
+    #     for k, v in vars(self).items():
+    #         print(k, ' = ', v)
 
 
 
@@ -600,7 +600,7 @@ yolact_base_config = coco_base_config.copy({
         'preapply_sqrt': False,
         'use_square_anchors': True, # This is for backward compatability with a bug
 
-        'pred_aspect_ratios': [ [[1, 1/2, 2]] ]*5,
+        'pred_aspect_ratios': [ [[1, 1/2.0, 2]] ]*5,
         'pred_scales': [[24], [48], [96], [192], [384]],
     }),
 
@@ -683,7 +683,7 @@ yolact_resnet50_config = yolact_base_config.copy({
 # Default config
 cfg = yolact_base_config.copy()
 
-def set_cfg(config_name:str):
+def set_cfg(config_name):
     """ Sets the active config. Works even if cfg is already imported! """
     global cfg
 
@@ -691,7 +691,7 @@ def set_cfg(config_name:str):
     # be used like ssd300_config.copy({'max_size': 400}) for extreme fine-tuning
     cfg.replace(eval(config_name))
 
-def set_dataset(dataset_name:str):
+def set_dataset(dataset_name):
     """ Sets the dataset of the current config. """
     cfg.dataset = eval(dataset_name)
     
