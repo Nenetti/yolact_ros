@@ -50,6 +50,26 @@ class Test:
             indices_y = segment.mask_indices_y
             for x, y in zip(indices_x, indices_y):
                 img[x, y] = 255, 0, 0
+
+            x1 = segment.xmin
+            x2 = segment.xmax
+            y1 = segment.ymin
+            y2 = segment.ymax
+            cv2.rectangle(img, (x1, y1), (x2, y2), (0, 0, 255), 1)
+
+            text_str = "%s: %.2f" % (segment.Class, segment.probability)
+
+            font_face = cv2.FONT_HERSHEY_DUPLEX
+            font_scale = 0.6
+            font_thickness = 1
+
+            text_w, text_h = cv2.getTextSize(text_str, font_face, font_scale, font_thickness)[0]
+
+            text_pt = (x1, y1 - 3)
+            text_color = [255, 255, 255]
+
+            cv2.rectangle(img, (x1, y1), (x1 + text_w, y1 - text_h - 4), (0, 0, 255), -1)
+            cv2.putText(img, text_str, text_pt, font_face, font_scale, text_color, font_thickness, cv2.LINE_AA)
             cv2.imwrite('/root/HSR/test/test1_{}.png'.format(i), img)
 
         for segment in result.segments.segments:  # type: Segment
