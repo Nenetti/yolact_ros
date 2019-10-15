@@ -44,13 +44,13 @@ class Test:
         print(self.client.get_state())
 
         for i, segment in enumerate(result.segments.segments):  # type: Segment
-            print(i)
+            print(i, segment.Class)
             img = cv_image.copy()
             indices_x = segment.mask_indices_x
             indices_y = segment.mask_indices_y
             for x, y in zip(indices_x, indices_y):
                 img[x, y] = 255, 0, 0
-                cv2.imwrite('/root/HSR/test/test1_{}.png'.format(i), img)
+            cv2.imwrite('/root/HSR/test/test1_{}.png'.format(i), img)
 
         for segment in result.segments.segments:  # type: Segment
             cv2.rectangle(cv_image, (segment.xmin, segment.ymin), (segment.xmax, segment.ymax), (255, 0, 0), 1)
