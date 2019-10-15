@@ -22,11 +22,10 @@ class Test:
         self.client = actionlib.SimpleActionClient("/segmentation", SegmentationAction)
 
         cv_image = cv2.imread("./test2.png")
-        plt.imshow(cv_image)
-        plt.show()
-
-        rospy.spin()
-        sys.exit(0)
+        # plt.imshow(cv_image)
+        # plt.show()
+        #
+        # rospy.spin()
 
         image = self.bridge.cv2_to_imgmsg(cv_image)
 
