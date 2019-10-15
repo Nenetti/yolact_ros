@@ -8,7 +8,7 @@ import rospy
 import cv_bridge
 import cv2
 import numpy as np
-
+import matplotlib.pyplot as plt
 from yolact_ros.msg import Segment, SegmentationGoal, SegmentationAction, SegmentationResult
 
 
@@ -22,6 +22,12 @@ class Test:
         self.client = actionlib.SimpleActionClient("/segmentation", SegmentationAction)
 
         cv_image = cv2.imread("./test2.png")
+        plt.imshow(cv_image)
+        plt.show()
+
+        rospy.spin()
+        sys.exit(0)
+
         image = self.bridge.cv2_to_imgmsg(cv_image)
 
         goal = SegmentationGoal()
