@@ -49,7 +49,7 @@ class Test:
             indices_y = segment.mask_indices_y
             for x, y in zip(indices_x, indices_y):
                 img[x, y] = 255, 0, 0
-                cv2.imwrite('/root/HSR/test/test1_{}.png'.format(i), image)
+                cv2.imwrite('/root/HSR/test/test1_{}.png'.format(i), img)
 
         for segment in result.segments.segments:  # type: Segment
             cv2.rectangle(cv_image, (segment.xmin, segment.ymin), (segment.xmax, segment.ymax), (255, 0, 0), 1)
