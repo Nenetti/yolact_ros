@@ -44,6 +44,7 @@ class Test:
         print(self.client.get_state())
 
         for i, segment in enumerate(result.segments.segments):  # type: Segment
+            print(i)
             img = cv_image.copy()
             indices_x = segment.mask_indices_x
             indices_y = segment.mask_indices_y
