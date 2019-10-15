@@ -41,7 +41,7 @@ class MultiBoxLoss(nn.Module):
 
         # If you output a proto mask with this area, your l1 loss will be l1_alpha
         # Note that the area is relative (so 1 would be the entire image)
-        self.l1_expected_area = 20*20/70/70
+        self.l1_expected_area = 20.0*20/70/70
         self.l1_alpha = 0.1
 
     def forward(self, predictions, wrapper, wrapper_mask):
