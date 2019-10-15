@@ -12,7 +12,7 @@ import numpy as np
 import rospy
 import torch
 import torch.backends.cudnn as cudnn
-from yolact_ros_msgs.msg import Segment, Segments, SegmentationGoal, SegmentationResult, SegmentationAction
+from yolact_ros.msg import Segment, Segments, SegmentationGoal, SegmentationResult, SegmentationAction
 
 from data import cfg, set_cfg, COLORS
 from layers.output_utils import postprocess, undo_image_transformation
@@ -43,12 +43,12 @@ class YolactRos:
         self.score_threshold = rospy.get_param("~score_threshold", default=0.3)
         self.top_k = rospy.get_param("~top_k", default=5)
 
-        self.load_mdoel()
+        self.load_model()
         rospy.loginfo("Ready...")
         self.server = actionlib.SimpleActionServer("/segmentation", SegmentationAction, self.call_back, auto_start=False)
         self.server.start()
 
-    def load_mdoel(self):
+    def load_model(self):
 
         model_path = SavePath.from_str(self.trained_model)
         # TODO: Bad practice? Probably want to do a name lookup instead.

@@ -7,8 +7,9 @@ import rospy
 
 import cv_bridge
 import cv2
+import numpy as np
 
-from yolact_ros_msgs.msg import Segment, SegmentationGoal, SegmentationAction, SegmentationResult
+from yolact_ros.msg import Segment, SegmentationGoal, SegmentationAction, SegmentationResult
 
 
 class Test:
@@ -20,9 +21,8 @@ class Test:
 
         self.client = actionlib.SimpleActionClient("/segmentation", SegmentationAction)
 
-        cv_image = cv2.imread("./test1.png")
+        cv_image = cv2.imread("./test2.png")
         image = self.bridge.cv2_to_imgmsg(cv_image)
-        print(os.path.exists("/root/HSR/test1.png"))
 
         goal = SegmentationGoal()
         goal.image = image
@@ -38,17 +38,20 @@ class Test:
         result = self.client.get_result()  # type: SegmentationResult
         print(self.client.get_state())
 
-        for segment in result.segments.segments:  # type: Segment
+        for i, segment in enumerate(result.segments.segments):  # type: Segment
+            img = cv_image.copy()
             indices_x = segment.mask_indices_x
             indices_y = segment.mask_indices_y
             for x, y in zip(indices_x, indices_y):
-                cv_image[x, y] = 0, 0, 0
+                img[x, y] = 255, 0, 0
+                cv2.imwrite('/root/HSR/test/test1_{}.png'.format(i), image)
 
         for segment in result.segments.segments:  # type: Segment
             cv2.rectangle(cv_image, (segment.xmin, segment.ymin), (segment.xmax, segment.ymax), (255, 0, 0), 1)
 
         print("save")
-        cv2.imwrite('/root/HSR/test1_s.png', cv_image)
+
+        cv2.imwrite('/root/HSR/test/test1_s.png', cv_image)
 
         sys.exit(1)
 
