@@ -79,11 +79,15 @@ class YolactRos:
         :type goal: SegmentationGoal
         :return: SegmentationResult
         """
+        print("subscribe")
         image = self._bridge.imgmsg_to_cv2(goal.image)
         msg = self.eval_image(image)
-        result = SegmentationResult()
-        result.segments = msg
-        self.server.set_succeeded(result)
+        if not self.server.is_preempt_requested():
+            if msg is not None:
+                result = SegmentationResult()
+                result.segments = msg
+                self.server.set_succeeded(result)
+
 
     def eval_image(self, image):
         frame = torch.from_numpy(image).cuda().float()
@@ -91,7 +95,11 @@ class YolactRos:
         preds = self.net(batch)
 
         start = time.time()
-        msg = self.prep_display(preds, frame, None, None, undo_transform=False)
+        try:
+            msg = self.prep_display(preds, frame, None, None, undo_transform=False)
+        except Exception as e:
+            rospy.logerr(e)
+            msg = None
         elapsed_time = time.time() - start
         rospy.loginfo("elapsed_time:{0}".format(elapsed_time) + "[sec]")
         return msg
@@ -129,7 +137,8 @@ class YolactRos:
 
         if num_dets_to_consider == 0:
             # No detections found so just output the original image
-            return (img_gpu * 255).byte().cpu().numpy()
+            # return (img_gpu * 255).byte().cpu().numpy()
+            return Segments()
 
         mask_indices = [0] * num_dets_to_consider
         for i in range(num_dets_to_consider):
