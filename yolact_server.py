@@ -88,7 +88,6 @@ class YolactRos:
                 result.segments = msg
                 self.server.set_succeeded(result)
 
-
     def eval_image(self, image):
         frame = torch.from_numpy(image).cuda().float()
         batch = FastBaseTransform()(frame.unsqueeze(0))
@@ -231,13 +230,15 @@ class YolactRos:
             x1, y1, x2, y2 = boxes[i, :]
             segment = Segment()
             segment.Class = cfg.dataset.class_names[classes[i]]
+            if segment.Class == "refrigerator":
+                continue
             segment.probability = scores[i]
             segment.xmin = x1
             segment.ymin = y1
             segment.xmax = x2
             segment.ymax = y2
-            segment.mask_indices_x = mask_indices[i][0]
-            segment.mask_indices_y = mask_indices[i][1]
+            segment.mask_indices_x = mask_indices[i][1]
+            segment.mask_indices_y = mask_indices[i][0]
             segments.segments.append(segment)
 
         return segments
