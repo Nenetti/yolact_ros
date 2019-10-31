@@ -237,8 +237,16 @@ class YolactRos:
             segment.ymin = y1
             segment.xmax = x2
             segment.ymax = y2
-            segment.mask_indices_x = mask_indices[i][1]
-            segment.mask_indices_y = mask_indices[i][0]
+            indices = mask_indices[i][1] + (640 * mask_indices[i][0])
+            encoded_pixels = []
+            start = 0
+            for k in range(len(indices) - 1):
+                if indices[k + 1] - indices[k] != 1:
+                    encoded_pixels.append(indices[start])
+                    encoded_pixels.append(k + 1 - start)
+                    start = k + 1
+            segment.encoded_pixels = encoded_pixels
+            segment.pixel_size = len(indices)
             segments.segments.append(segment)
 
         return segments
