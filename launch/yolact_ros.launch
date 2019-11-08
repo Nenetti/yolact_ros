@@ -2,6 +2,8 @@
 
 <launch>
 
+  <include file="$(find custom_octomap_server)/launch/demo.launch"/>
+
   <arg name="weights_path" default="$(find yolact_ros)/weights"/>
 
   <node pkg="yolact_ros" type="yolact_server.py" name="yolact_server" output="screen">
