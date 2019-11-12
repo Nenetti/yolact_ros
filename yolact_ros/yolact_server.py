@@ -45,7 +45,7 @@ class YolactRos:
 
         self.load_model()
         rospy.loginfo("Ready...")
-        self.server = actionlib.SimpleActionServer("/segmentation", SegmentationAction, self.call_back, auto_start=False)
+        self.server = actionlib.SimpleActionServer("/yolact_ros/check_for_objects", SegmentationAction, self.call_back, auto_start=False)
         self.server.start()
 
     def load_model(self):
