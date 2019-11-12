@@ -4,7 +4,7 @@
   <!-- Octomap dynamic -->
     <node pkg="tf" type="static_transform_publisher" name="map_world_broadcaster_dynamic" args="0 0 0 0 0 0 world /map 100" />
 
-    <node name="octomap_server_dynamic" pkg="yolact_ros_octomap_mapping" type="octomap_server_node" output="screen">
+    <node name="yolact_ros_octomap_mapping" pkg="yolact_ros_octomap_mapping" type="octomap_server_node" output="screen">
       <remap from="cloud_in" to="/hsrb/head_rgbd_sensor/depth_registered/rectified_points" />
       <remap from="octomap_full" to="/octomap_full_dynamic"/>
       <param name="frame_id" type="string" value="/map" />
