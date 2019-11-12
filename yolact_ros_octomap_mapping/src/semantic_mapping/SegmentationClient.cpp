@@ -19,7 +19,7 @@ namespace semantic_mapping {
      * コンストラクター
      */
     SegmentationClient::SegmentationClient() {
-        m_segmentationClient = new actionlib::SimpleActionClient<yolact_ros::SegmentationAction>("/segmentation", true);
+        m_segmentationClient = new actionlib::SimpleActionClient<yolact_ros::SegmentationAction>("/yolact_ros/check_for_objects", true);
         m_image_pub = m_nh.advertise<sensor_msgs::Image>("/segmentation/image_raw", 1, true);
     }
 
