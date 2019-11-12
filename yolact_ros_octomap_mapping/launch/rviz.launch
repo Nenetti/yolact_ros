@@ -4,6 +4,6 @@
   <arg name="rviz_filename" default="demo.rviz"/> <!--wrs_prc_final, hsr_moveit -->
 
   <!-- Rviz -->
-  <node name="$(anon rviz)" pkg="rviz" type="rviz" args="-d $(find custom_octomap_server)/config/$(arg rviz_filename)"/>
+  <node name="$(anon rviz)" pkg="rviz" type="rviz" args="-d $(find yolact_ros_octomap_mapping)/config/$(arg rviz_filename)"/>
 
 </launch>

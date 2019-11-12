@@ -3,7 +3,7 @@
 
     <!-- <include file="$(find custom_octomap_server)/launch/hector_slam.launch"/> -->
 
-    <include file="$(find custom_octomap_server)/launch/octomap_dynamic.launch"/>
+    <include file="$(find yolact_ros_octomap_mapping)/launch/octomap_dynamic.launch"/>
 
     <!-- <include file="$(find custom_octomap_server)/launch/rviz.launch"/> -->
 

@@ -2,7 +2,7 @@
 
 <launch>
 
-  <include file="$(find custom_octomap_server)/launch/demo.launch"/>
+  <include file="$(find yolact_ros_octomap_mapping)/launch/demo.launch"/>
 
   <arg name="weights_path" default="$(find yolact_ros)/weights"/>
 

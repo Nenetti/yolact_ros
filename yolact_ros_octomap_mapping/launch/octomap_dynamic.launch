@@ -4,13 +4,13 @@
   <!-- Octomap dynamic -->
     <node pkg="tf" type="static_transform_publisher" name="map_world_broadcaster_dynamic" args="0 0 0 0 0 0 world /map 100" />
 
-    <node name="octomap_server_dynamic" pkg="custom_octomap_server" type="octomap_server_node" output="screen">
+    <node name="octomap_server_dynamic" pkg="yolact_ros_octomap_mapping" type="octomap_server_node" output="screen">
       <remap from="cloud_in" to="/hsrb/head_rgbd_sensor/depth_registered/rectified_points" />
       <remap from="octomap_full" to="/octomap_full_dynamic"/>
       <param name="frame_id" type="string" value="/map" />
       <param name="resolution" value="0.02" /> <!--default: 0.05 [m]-->
-<!--      <param name="base_frame_id" value="/base_footprint" />-->
-      <param name="base_frame_id" value="/scanmatcher_frame" />
+<!--      <param name="base_frame_id" value="/scanmatcher_frame" />-->
+      <param name="base_frame_id" value="/base_footprint" />
       <param name="height_map" value="true" />
       <param name="sensor_model/max_range" value="7.0" />
       <param name="sensor_model/hit" value="0.7" />
