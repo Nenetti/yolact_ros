@@ -24,7 +24,6 @@ var/
 .installed.cfg
 *.egg
 docs/
-cfg/
 cmake-build-debug/
 
 # PyInstaller
