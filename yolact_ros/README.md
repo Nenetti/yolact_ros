@@ -1,3 +1,25 @@
+# 'yolact_ros' Package
+
+The `yolact_ros` package provides instance segmentation.
+*   Maintainer: Akinori Kanechika ([kanechika.akinori@em.ci.ritsumei.ac.jp](mailto:kanechika.akinori@em.ci.ritsumei.ac.jp)).
+*   Author: Akinori Kanechika ([kanechika.akinori@em.ci.ritsumei.ac.jp](mailto:kanechika.akinori@em.ci.ritsumei.ac.jp)).
+
+**Content:**
+
+*   [Launch](#Launch)
+*   [Actions](#Actions)
+
+## Launch
+
+*   `yolact_ros.launch`: Start the server of yolact_ros action.
+*   `mapping_demo.launch`: Start the demonstration of the segmentation action.
+
+## Action
+* **`yolact_ros/check_for_objects`** ([yolact_ros::Segmentation])
+
+    Sends an action with an image and the result is an array of bounding boxes and masks.
+
+
 # **Y**ou **O**nly **L**ook **A**t **C**oefficien**T**s
 ```
     ██╗   ██╗ ██████╗ ██╗      █████╗  ██████╗████████╗

@@ -1,27 +1,19 @@
-# 'em_semantic_mapping' Package
+# 'yolact_ros_octomap_mapping' Package
 
-The `em_semantic_mapping` package provides real-time tracking of a human with using a particle filter and random forest.
-
-*   Maintainer: Akinori Kanechika ([kanechika.akinori@em.ci.ritsumei.ac.jp](mailto:yuki.katsumata@em.ci.ritsumei.ac.jp)).
-*   Author: Akinori Kanechika ([kanechika.akinori@em.ci.ritsumei.ac.jp](mailto:yuki.katsumata@em.ci.ritsumei.ac.jp)).
+The `yolact_ros_octomap_mapping` package provides real-time segmentation octomap.
+*   Maintainer: Akinori Kanechika ([kanechika.akinori@em.ci.ritsumei.ac.jp](mailto:kanechika.akinori@em.ci.ritsumei.ac.jp)).
+*   Author: Akinori Kanechika ([kanechika.akinori@em.ci.ritsumei.ac.jp](mailto:kanechika.akinori@em.ci.ritsumei.ac.jp)).
 
 **Content:**
 
 *   [Launch](#Launch)
-*   [Messages](#Messages)
-*   [Files](#Directory)
+*   [Actions](#Actions)
 
 ## Launch
 
-*   Demo `demo.launch` to start the `demonstration semantic segmentation` action.
+*   `octomap_dynamic.launch`: Start the octomap_server action.
 
-*   Run `octomap_dynamic.launch` to start the `octomap and semantic_mapping` action.
+## Action
+* **`yolact_ros/check_for_objects`** ([yolact_ros::Segmentation])
 
-## Messages
-
-* coming soon
-
-## Directory
-* custom_octomap: customize octomap module. customized from octomap
-* octomap_server: Main ros process module
-* semantic_mapping: semantic_mapping module
+    Sends an action with an image and the result is an array of bounding boxes and masks.
