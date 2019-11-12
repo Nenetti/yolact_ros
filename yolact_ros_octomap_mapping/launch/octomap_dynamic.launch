@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<launch>
+
+  <!-- Octomap dynamic -->
+    <node pkg="tf" type="static_transform_publisher" name="map_world_broadcaster_dynamic" args="0 0 0 0 0 0 world /map 100" />
+
+    <node name="octomap_server_dynamic" pkg="yolact_ros_octomap_mapping" type="octomap_server_node" output="screen">
+      <remap from="cloud_in" to="/hsrb/head_rgbd_sensor/depth_registered/rectified_points" />
+      <remap from="octomap_full" to="/octomap_full_dynamic"/>
+      <param name="frame_id" type="string" value="/map" />
+      <param name="resolution" value="0.02" /> <!--default: 0.05 [m]-->
+<!--      <param name="base_frame_id" value="/scanmatcher_frame" />-->
+      <param name="base_frame_id" value="/base_footprint" />
+      <param name="height_map" value="true" />
+      <param name="sensor_model/max_range" value="7.0" />
+      <param name="sensor_model/hit" value="0.7" />
+      <param name="sensor_model/miss" value="0.4" /> <!--default: 0.4-->
+      <param name="sensor_model/min" value="0.12" />
+      <param name="sensor_model/max" value="0.97" />
+      <param name="latch" value="true" />
+      <param name="filter_ground" value="true" />
+      <param name="ground_filter/distance" value="0.07" />
+      <param name="ground_filter/angle" value="0.02" /> <!--default: 0.15-->
+      <param name="ground_filter/plane_distance" value="0.1" />
+      <param name="pointcloud_min_z" value="0.0" />
+      <param name="pointcloud_max_z" value="2.0" />
+      <param name="occupancy_min_z" value="0.0" />
+      <param name="occupancy_max_z" value="2.0" />
+      <param name="down_sampling" value="true" />
+    </node>
+
+
+</launch>
