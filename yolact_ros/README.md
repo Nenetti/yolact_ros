@@ -1,8 +1,6 @@
 # 'yolact_ros' Package
 
 The `yolact_ros` package provides instance segmentation.
-*   Maintainer: Akinori Kanechika ([kanechika.akinori@em.ci.ritsumei.ac.jp](mailto:kanechika.akinori@em.ci.ritsumei.ac.jp)).
-*   Author: Akinori Kanechika ([kanechika.akinori@em.ci.ritsumei.ac.jp](mailto:kanechika.akinori@em.ci.ritsumei.ac.jp)).
 
 **Content:**
 

@@ -4,12 +4,6 @@ The `yolact_ros_octomap_mapping` package provides real-time segmentation octomap
 
 Fork from [OctoMap/octomap_mapping](https://github.com/OctoMap/octomap_mapping)
 
-
-*   Maintainer: Akinori Kanechika ([kanechika.akinori@em.ci.ritsumei.ac.jp](mailto:kanechika.akinori@em.ci.ritsumei.ac.jp)).
-*   Author: Akinori Kanechika ([kanechika.akinori@em.ci.ritsumei.ac.jp](mailto:kanechika.akinori@em.ci.ritsumei.ac.jp)).
-
-
-
 **Content:**
 
 *   [Original Repository](#Fork Repository)
