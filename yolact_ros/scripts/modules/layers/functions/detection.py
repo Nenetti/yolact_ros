@@ -1,16 +1,17 @@
 import torch
 import torch.nn.functional as F
-from ..box_utils import decode, jaccard, index2d
-from utils import timer
+from modules.layers.box_utils import decode, jaccard, index2d
+from modules.utils import timer
 
-from data import cfg, mask_type
+from modules.data import cfg, mask_type
 
 import numpy as np
 
 import pyximport
-pyximport.install(setup_args={"include_dirs":np.get_include()}, reload_support=True)
 
-from utils.cython_nms import nms as cnms
+pyximport.install(setup_args={"include_dirs": np.get_include()}, reload_support=True)
+
+from modules.utils.cython_nms import nms as cnms
 
 
 class Detect(object):
@@ -19,6 +20,7 @@ class Detect(object):
     scores and threshold to a top_k number of output predictions for both
     confidence score and locations, as the predicted masks.
     """
+
     # TODO: Refactor this whole class away. It needs to go.
 
     def __init__(self, num_classes, bkg_label, top_k, conf_thresh, nms_thresh):
@@ -30,7 +32,7 @@ class Detect(object):
         if nms_thresh <= 0:
             raise ValueError('nms_threshold must be non negative.')
         self.conf_thresh = conf_thresh
-        
+
         self.cross_class_nms = False
         self.use_fast_nms = False
 
@@ -55,13 +57,13 @@ class Detect(object):
             Note that the outputs are sorted only if cross_class_nms is False
         """
 
-        loc_data   = predictions['loc']
-        conf_data  = predictions['conf']
-        mask_data  = predictions['mask']
+        loc_data = predictions['loc']
+        conf_data = predictions['conf']
+        mask_data = predictions['mask']
         prior_data = predictions['priors']
 
         proto_data = predictions['proto'] if 'proto' in predictions else None
-        inst_data  = predictions['inst']  if 'inst'  in predictions else None
+        inst_data = predictions['inst'] if 'inst' in predictions else None
 
         out = []
 
@@ -77,11 +79,10 @@ class Detect(object):
 
                 if result is not None and proto_data is not None:
                     result['proto'] = proto_data[batch_idx]
-                
-                out.append(result)
-        
-        return out
 
+                out.append(result)
+
+        return out
 
     def detect(self, batch_idx, conf_preds, decoded_boxes, mask_data, inst_data):
         """ Perform nms for only the max scoring class that isn't background (class 0) """
@@ -95,17 +96,17 @@ class Detect(object):
 
         if inst_data is not None:
             inst = inst_data[batch_idx, keep, :]
-    
+
         if scores.size(1) == 0:
             return None
-        
+
         if self.use_fast_nms:
             boxes, masks, classes, scores = self.fast_nms(boxes, masks, scores, self.nms_thresh, self.top_k)
         else:
-            boxes, masks, classes, scores = self.traditional_nms(boxes, masks, scores, self.nms_thresh, self.conf_thresh)
+            boxes, masks, classes, scores = self.traditional_nms(boxes, masks, scores, self.nms_thresh,
+                                                                 self.conf_thresh)
 
         return {'box': boxes, 'mask': masks, 'class': classes, 'score': scores}
-    
 
     def coefficient_nms(self, coeffs, scores, cos_threshold=0.9, top_k=400):
         _, idx = scores.sort(0, descending=True)
@@ -128,10 +129,9 @@ class Detect(object):
         # Now just filter out the ones higher than the threshold
         idx_out = idx[cos_max <= cos_threshold]
 
-
         # new_mask_norm = F.normalize(masks[idx_out], dim=1)
         # print(new_mask_norm[:5] @ new_mask_norm[:5].t())
-        
+
         return idx_out, idx_out.size(0)
 
     def fast_nms(self, boxes, masks, scores, iou_threshold=0.5, top_k=200, second_threshold=False):
@@ -139,7 +139,7 @@ class Detect(object):
 
         idx = idx[:, :top_k].contiguous()
         scores = scores[:, :top_k]
-    
+
         num_classes, num_dets = idx.size()
 
         boxes = boxes[idx.view(-1), :].view(num_classes, num_dets, 4)
@@ -167,7 +167,7 @@ class Detect(object):
         boxes = boxes[keep]
         masks = masks[keep]
         scores = scores[keep]
-        
+
         # Only keep the top cfg.max_num_detections highest scores across all classes
         scores, idx = scores.sort(0, descending=True)
         idx = idx[:cfg.max_num_detections]
@@ -199,7 +199,7 @@ class Detect(object):
 
             if cls_scores.size(0) == 0:
                 continue
-            
+
             preds = torch.cat([boxes[conf_mask], cls_scores[:, None]], dim=1).cpu().numpy()
             keep = cnms(preds, iou_threshold)
             keep = torch.Tensor(keep, device=boxes.device).long()
@@ -207,10 +207,10 @@ class Detect(object):
             idx_lst.append(idx[keep])
             cls_lst.append(keep * 0 + _cls)
             scr_lst.append(cls_scores[keep])
-        
-        idx     = torch.cat(idx_lst, dim=0)
+
+        idx = torch.cat(idx_lst, dim=0)
         classes = torch.cat(cls_lst, dim=0)
-        scores  = torch.cat(scr_lst, dim=0)
+        scores = torch.cat(scr_lst, dim=0)
 
         scores, idx2 = scores.sort(0, descending=True)
         idx2 = idx2[:cfg.max_num_detections]

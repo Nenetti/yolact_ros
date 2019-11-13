@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import torch
-from utils import timer
-from data import cfg
+# from utils import timer
+from modules.data import cfg
 
 # @torch.jit.script
 def point_form(boxes):
@@ -130,7 +130,7 @@ def match(pos_thresh, neg_thresh, truths, priors, labels, crowd_boxes, loc_t, co
         The matched indices corresponding to 1)location and 2)confidence preds.
     """
     decoded_priors = decode(loc_data, priors, cfg.use_yolo_regressors) if cfg.use_prediction_matching else point_form(priors)
-    
+
     # Size [num_objects, num_priors]
     overlaps = jaccard(truths, decoded_priors) if not cfg.use_change_matching else change(truths, decoded_priors)
 
@@ -215,7 +215,7 @@ def encode(matched, priors, use_yolo_regressors=False):
         g_wh = torch.log(g_wh) / variances[1]
         # return target for smooth_l1_loss
         loc = torch.cat([g_cxcy, g_wh], 1)  # [num_priors,4]
-        
+
     return loc
 
 # @torch.jit.script
@@ -256,13 +256,13 @@ def decode(loc, priors, use_yolo_regressors=False):
         boxes = point_form(boxes)
     else:
         variances = [0.1, 0.2]
-        
+
         boxes = torch.cat((
             priors[:, :2] + loc[:, :2] * variances[0] * priors[:, 2:],
             priors[:, 2:] * torch.exp(loc[:, 2:] * variances[1])), 1)
         boxes[:, :2] -= boxes[:, 2:] / 2
         boxes[:, 2:] += boxes[:, :2]
-    
+
     return boxes
 
 
@@ -316,14 +316,14 @@ def crop(masks, boxes, padding=1):
 
     rows = torch.arange(w, device=masks.device, dtype=x1.dtype).view(1, -1, 1).expand(h, w, n)
     cols = torch.arange(h, device=masks.device, dtype=x1.dtype).view(-1, 1, 1).expand(h, w, n)
-    
+
     masks_left  = rows >= x1.view(1, 1, -1)
     masks_right = rows <  x2.view(1, 1, -1)
     masks_up    = cols >= y1.view(1, 1, -1)
     masks_down  = cols <  y2.view(1, 1, -1)
-    
+
     crop_mask = masks_left * masks_right * masks_up * masks_down
-    
+
     return masks * crop_mask.float()
 
 

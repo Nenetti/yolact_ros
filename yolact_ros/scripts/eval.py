@@ -1,14 +1,14 @@
-from data import COCODetection, get_label_map, MEANS, COLORS
+from catkin_ws.src.yolact_ros.yolact_ros.scripts.module.data import COCODetection, get_label_map, COLORS
 from yolact import Yolact
-from utils.augmentations import BaseTransform, FastBaseTransform, Resize
-from utils.functions import MovingAverage, ProgressBar
-from layers.box_utils import jaccard, center_size
-from utils import timer
-from utils.functions import SavePath
-from layers.output_utils import postprocess, undo_image_transformation
+from catkin_ws.src.yolact_ros.yolact_ros.scripts.module.utils import BaseTransform, FastBaseTransform
+from catkin_ws.src.yolact_ros.yolact_ros.scripts.module.utils.functions import MovingAverage, ProgressBar
+from catkin_ws.src.yolact_ros.yolact_ros.scripts.module.layers import jaccard
+from catkin_ws.src.yolact_ros.yolact_ros.scripts.module.utils import timer
+from catkin_ws.src.yolact_ros.yolact_ros.scripts.module.utils.functions import SavePath
+from catkin_ws.src.yolact_ros.yolact_ros.scripts.module.layers.output_utils import postprocess, undo_image_transformation
 import pycocotools
 
-from data import cfg, set_cfg, set_dataset
+from catkin_ws.src.yolact_ros.yolact_ros.scripts.module.data import cfg, set_cfg, set_dataset
 
 import numpy as np
 import torch
@@ -17,14 +17,12 @@ from torch.autograd import Variable
 import argparse
 import time
 import random
-import cProfile
 import pickle
 import json
 import os
 from collections import defaultdict
 from pathlib import Path
 from collections import OrderedDict
-from PIL import Image
 
 import matplotlib.pyplot as plt
 import cv2

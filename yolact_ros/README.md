@@ -34,11 +34,11 @@ A simple, fully convolutional model for real-time instance segmentation. This is
 
 Here's a look at our current results for our base model (33 fps on a Titan Xp and 29.8 mAP on COCO's `test-dev`):
 
-![Example 0](data/yolact_example_0.png)
+![Example 0](scripts/module/data/yolact_example_0.png)
 
-![Example 1](data/yolact_example_1.png)
+![Example 1](scripts/module/data/yolact_example_1.png)
 
-![Example 2](data/yolact_example_2.png)
+![Example 2](scripts/module/data/yolact_example_2.png)
 
 # Installation
  - Set up a Python3 environment.

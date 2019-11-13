@@ -1,12 +1,10 @@
 #! /usr/bin/env python
 
 import os
-import sys
 import time
 from collections import defaultdict
 
 import actionlib
-import cv2
 import cv_bridge
 import numpy as np
 import rospy
@@ -14,13 +12,12 @@ import torch
 import torch.backends.cudnn as cudnn
 from yolact_ros.msg import Segment, Segments, SegmentationGoal, SegmentationResult, SegmentationAction
 
-from data import cfg, set_cfg, COLORS
-from layers.output_utils import postprocess, undo_image_transformation
-from utils import timer
-from utils.augmentations import FastBaseTransform
-from utils.functions import SavePath
+from modules.data import cfg, set_cfg
+from modules.layers.output_utils import postprocess, undo_image_transformation
+from modules.utils import timer
+from modules.utils import FastBaseTransform
+from modules.utils.functions import SavePath
 from yolact import Yolact
-import matplotlib.pyplot as plt
 
 
 class YolactRos:
@@ -45,7 +42,8 @@ class YolactRos:
 
         self.load_model()
         rospy.loginfo("Ready...")
-        self.server = actionlib.SimpleActionServer("/yolact_ros/check_for_objects", SegmentationAction, self.call_back, auto_start=False)
+        self.server = actionlib.SimpleActionServer("/yolact_ros/check_for_objects", SegmentationAction, self.call_back,
+                                                   auto_start=False)
         self.server.start()
 
     def load_model(self):
@@ -86,6 +84,7 @@ class YolactRos:
             if msg is not None:
                 result = SegmentationResult()
                 result.segments = msg
+                result.id = goal.id
                 self.server.set_succeeded(result)
 
     def eval_image(self, image):
@@ -238,14 +237,8 @@ class YolactRos:
             segment.xmax = x2
             segment.ymax = y2
             indices = mask_indices[i][1] + (640 * mask_indices[i][0])
-            encoded_pixels = []
-            start = 0
-            for k in range(len(indices) - 1):
-                if indices[k + 1] - indices[k] != 1:
-                    encoded_pixels.append(indices[start])
-                    encoded_pixels.append(k + 1 - start)
-                    start = k + 1
-            segment.encoded_pixels = encoded_pixels
+            segment.x_masks = mask_indices[i][1]
+            segment.y_masks = mask_indices[i][0]
             segment.pixel_size = len(indices)
             segments.segments.append(segment)
 
