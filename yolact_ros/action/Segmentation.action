@@ -2,10 +2,12 @@
 
 # Goal definition
 sensor_msgs/Image image
+int32 id
 
 ---
 # Result definition
 yolact_ros/Segments segments
+int32 id
 
 ---
 # Feedback definition
