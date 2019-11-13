@@ -6,4 +6,3 @@ int32 xmax
 int32 ymax
 int32[] x_masks
 int32[] y_masks
-int32 pixel_size

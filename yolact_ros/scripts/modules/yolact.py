@@ -1,17 +1,17 @@
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from torchvision.models.resnet import Bottleneck
-import numpy as np
 from itertools import product
 from math import sqrt
 
+import numpy as np
+import torch
+import torch.backends.cudnn as cudnn
+import torch.nn as nn
+import torch.nn.functional as F
+from torchvision.models.resnet import Bottleneck
+
+from modules.backbone import construct_backbone
 from modules.data.config import cfg, mask_type
 from modules.layers import Detect
 from modules.layers.interpolate import InterpolateModule
-from backbone import construct_backbone
-
-import torch.backends.cudnn as cudnn
 from modules.utils import timer
 from modules.utils.functions import MovingAverage
 
@@ -28,17 +28,16 @@ ScriptModuleWrapper = torch.jit.ScriptModule if use_jit else nn.Module
 script_method_wrapper = torch.jit.script_method if use_jit else lambda fn, _rcn=None: fn
 
 
-
 class Concat(nn.Module):
     def __init__(self, nets, extra_params):
         super(Concat, self).__init__()
 
         self.nets = nn.ModuleList(nets)
         self.extra_params = extra_params
+
     def forward(self, x):
         # Concat each along the channel dimension
         return torch.cat([net(x) for net in self.nets], dim=1, **self.extra_params)
-
 
 
 def make_net(in_channels, conf, include_last_relu=True):
@@ -46,7 +45,8 @@ def make_net(in_channels, conf, include_last_relu=True):
     A helper function to take a config setting and turn it into a network.
     Used by protonet and extrahead. Returns (network, out_channels)
     """
-    param = {"in_channels" : in_channels}
+    param = {"in_channels": in_channels}
+
     def make_layer(layer_cfg):
         # Possible patterns:
         # ( 256, 3, {}) -> conv
@@ -92,7 +92,6 @@ def make_net(in_channels, conf, include_last_relu=True):
     return nn.Sequential(*(net)), param["in_channels"]
 
 
-
 class PredictionModule(nn.Module):
     """
     The (c) prediction module adapted from DSSD:
@@ -118,13 +117,14 @@ class PredictionModule(nn.Module):
         - parent:        If parent is a PredictionModule, this module will use all the layers
                          from parent instead of from this module.
     """
+
     def __init__(self, in_channels, out_channels=1024, aspect_ratios=[[1]], scales=[1], parent=None):
         super(PredictionModule, self).__init__()
 
         self.num_classes = cfg.num_classes
-        self.mask_dim    = cfg.mask_dim
-        self.num_priors  = sum(len(x) for x in aspect_ratios)
-        self.parent      = [parent] # Don't include this in the state dict
+        self.mask_dim = cfg.mask_dim
+        self.num_priors = sum(len(x) for x in aspect_ratios)
+        self.parent = [parent]  # Don't include this in the state dict
 
         if cfg.mask_proto_prototypes_as_features:
             in_channels += self.mask_dim
@@ -139,12 +139,13 @@ class PredictionModule(nn.Module):
                 self.conv = nn.Conv2d(out_channels, out_channels, kernel_size=1, bias=True)
                 self.bn = nn.BatchNorm2d(out_channels)
 
-            self.bbox_layer = nn.Conv2d(out_channels, self.num_priors * 4,                **cfg.head_layer_params)
+            self.bbox_layer = nn.Conv2d(out_channels, self.num_priors * 4, **cfg.head_layer_params)
             self.conf_layer = nn.Conv2d(out_channels, self.num_priors * self.num_classes, **cfg.head_layer_params)
-            self.mask_layer = nn.Conv2d(out_channels, self.num_priors * self.mask_dim,    **cfg.head_layer_params)
+            self.mask_layer = nn.Conv2d(out_channels, self.num_priors * self.mask_dim, **cfg.head_layer_params)
 
             if cfg.use_instance_coeff:
                 self.inst_layer = nn.Conv2d(out_channels, self.num_priors * cfg.num_instance_coeffs, **cfg.head_layer_params)
+
             # What is this ugly lambda doing in the middle of all this clean prediction module code?
             def make_extra(num_layers):
                 if num_layers == 0:
@@ -224,11 +225,12 @@ class PredictionModule(nn.Module):
                     mask = mask * torch.sigmoid(gate)
         priors = self.make_priors(conv_h, conv_w)
 
-        preds = { 'loc': bbox, 'conf': conf, 'mask': mask, 'priors': priors }
+        preds = {'loc': bbox, 'conf': conf, 'mask': mask, 'priors': priors}
 
         if cfg.use_instance_coeff:
             preds['inst'] = inst
         return preds
+
     def make_priors(self, conv_h, conv_w):
         """ Note that priors are [x,y,width,height] where (x,y) is the center of the box. """
         with timer.env('makepriors'):
@@ -259,6 +261,7 @@ class PredictionModule(nn.Module):
                 self.last_conv_size = (conv_w, conv_h)
         return self.priors
 
+
 class FPN(ScriptModuleWrapper):
     """
     Implements a general version of the FPN introduced in
@@ -280,7 +283,7 @@ class FPN(ScriptModuleWrapper):
     def __init__(self, in_channels):
         super(FPN, self).__init__()
 
-        self.lat_layers  = nn.ModuleList([
+        self.lat_layers = nn.ModuleList([
             nn.Conv2d(x, cfg.fpn.num_features, kernel_size=1)
             for x in reversed(in_channels)
         ])
@@ -297,8 +300,8 @@ class FPN(ScriptModuleWrapper):
                 nn.Conv2d(cfg.fpn.num_features, cfg.fpn.num_features, kernel_size=3, padding=1, stride=2)
                 for _ in range(cfg.fpn.num_downsample)
             ])
-        self.interpolation_mode  = cfg.fpn.interpolation_mode
-        self.num_downsample      = cfg.fpn.num_downsample
+        self.interpolation_mode = cfg.fpn.interpolation_mode
+        self.num_downsample = cfg.fpn.num_downsample
         self.use_conv_downsample = cfg.fpn.use_conv_downsample
 
     def forward(self, convouts):
@@ -343,7 +346,6 @@ class FPN(ScriptModuleWrapper):
         return out
 
 
-
 class Yolact(nn.Module):
     """
     You can set the arguments by chainging them in the backbone config object in config.py.
@@ -364,7 +366,7 @@ class Yolact(nn.Module):
 
         # Compute mask_dim here and add it back to the config. Make sure Yolact's constructor is called early!
         if cfg.mask_type == mask_type.direct:
-            cfg.mask_dim = cfg.mask_size**2
+            cfg.mask_dim = cfg.mask_size ** 2
         elif cfg.mask_type == mask_type.lincomb:
             if cfg.mask_proto_use_grid:
                 self.grid = torch.Tensor(np.load(cfg.mask_proto_grid_file))
@@ -373,9 +375,12 @@ class Yolact(nn.Module):
                 self.num_grids = 0
 
             self.proto_src = cfg.mask_proto_src
-            if self.proto_src is None: in_channels = 3
-            elif cfg.fpn is not None: in_channels = cfg.fpn.num_features
-            else: in_channels = self.backbone.channels[self.proto_src]
+            if self.proto_src is None:
+                in_channels = 3
+            elif cfg.fpn is not None:
+                in_channels = cfg.fpn.num_features
+            else:
+                in_channels = self.backbone.channels[self.proto_src]
             in_channels += self.num_grids
 
             # The include_last_relu=false here is because we might want to change it to another function
@@ -383,7 +388,6 @@ class Yolact(nn.Module):
 
             if cfg.mask_proto_bias:
                 cfg.mask_dim += 1
-
 
         self.selected_layers = cfg.backbone.selected_layers
         src_channels = self.backbone.channels
@@ -394,7 +398,6 @@ class Yolact(nn.Module):
             self.selected_layers = list(range(len(self.selected_layers) + cfg.fpn.num_downsample))
             src_channels = [cfg.fpn.num_features] * len(self.selected_layers)
 
-
         self.prediction_layers = nn.ModuleList()
 
         for idx, layer_idx in enumerate(self.selected_layers):
@@ -404,9 +407,9 @@ class Yolact(nn.Module):
                 parent = self.prediction_layers[0]
 
             pred = PredictionModule(src_channels[layer_idx], src_channels[layer_idx],
-                                    aspect_ratios = cfg.backbone.pred_aspect_ratios[idx],
-                                    scales        = cfg.backbone.pred_scales[idx],
-                                    parent        = parent)
+                                    aspect_ratios=cfg.backbone.pred_aspect_ratios[idx],
+                                    scales=cfg.backbone.pred_scales[idx],
+                                    parent=parent)
             self.prediction_layers.append(pred)
 
         # Extra parameters for the extra losses
@@ -415,7 +418,7 @@ class Yolact(nn.Module):
             # Also note that cfg.num_classes includes background
             self.class_existence_fc = nn.Linear(src_channels[-1], cfg.num_classes - 1)
         if cfg.use_semantic_segmentation_loss:
-            self.semantic_seg_conv = nn.Conv2d(src_channels[0], cfg.num_classes-1, kernel_size=1)
+            self.semantic_seg_conv = nn.Conv2d(src_channels[0], cfg.num_classes - 1, kernel_size=1)
 
         # For use in evaluation
         self.detect = Detect(cfg.num_classes, bkg_label=0, top_k=200, conf_thresh=0.05, nms_thresh=0.5)
@@ -423,6 +426,7 @@ class Yolact(nn.Module):
     def save_weights(self, path):
         """ Saves the model's weights using compression because the file sizes were getting too big. """
         torch.save(self.state_dict(), path)
+
     def load_weights(self, path):
         """ Loads weights from a compressed save file. """
         state_dict = torch.load(path)
@@ -444,6 +448,7 @@ class Yolact(nn.Module):
         self.backbone.init_backbone(backbone_path)
 
         conv_constants = getattr(nn.Conv2d(1, 1, 1), '__constants__')
+
         # Quick lambda to test if one list contains the other
         def all_in(x, y):
             for _x in x:
@@ -456,8 +461,8 @@ class Yolact(nn.Module):
             # See issue #127 for why we need such a complicated condition if the module is a WeakScriptModuleProxy
             # Note that this might break with future pytorch updates, so let me know if it does
             is_script_conv = isinstance(module, torch.jit.WeakScriptModuleProxy) \
-                and all_in(module.__dict__['_constants_set'], conv_constants) \
-                and all_in(conv_constants, module.__dict__['_constants_set'])
+                             and all_in(module.__dict__['_constants_set'], conv_constants) \
+                             and all_in(conv_constants, module.__dict__['_constants_set'])
             is_conv_layer = isinstance(module, nn.Conv2d) or is_script_conv
             if is_conv_layer and module not in self.backbone.backbone_modules:
                 nn.init.xavier_uniform_(module.weight.data)
@@ -474,10 +479,10 @@ class Yolact(nn.Module):
                             # For simplicity (and because we have a degree of freedom here), set z = 1. Then we have
                             #   x_0 =  log((1 - pi) / pi)       note: don't split up the log for numerical stability
                             #   x_i = -log(c)                   for all i > 0
-                            module.bias.data[0]  = np.log((1 - cfg.focal_loss_init_pi) / cfg.focal_loss_init_pi)
+                            module.bias.data[0] = np.log((1 - cfg.focal_loss_init_pi) / cfg.focal_loss_init_pi)
                             module.bias.data[1:] = -np.log(module.bias.size(0) - 1)
                         else:
-                            module.bias.data[0]  = -np.log(cfg.focal_loss_init_pi / (1 - cfg.focal_loss_init_pi))
+                            module.bias.data[0] = -np.log(cfg.focal_loss_init_pi / (1 - cfg.focal_loss_init_pi))
                             module.bias.data[1:] = -np.log((1 - cfg.focal_loss_init_pi) / cfg.focal_loss_init_pi)
                     else:
                         module.bias.data.zero_()
@@ -533,9 +538,8 @@ class Yolact(nn.Module):
                     bias_shape[-1] = 1
                     proto_out = torch.cat([proto_out, torch.ones(*bias_shape)], -1)
 
-
         with timer.env('pred_heads'):
-            pred_outs = { 'loc': [], 'conf': [], 'mask': [], 'priors': [] }
+            pred_outs = {'loc': [], 'conf': [], 'mask': [], 'priors': []}
 
             if cfg.use_instance_coeff:
                 pred_outs['inst'] = []
@@ -579,24 +583,25 @@ class Yolact(nn.Module):
                 # See focal_loss_sigmoid in multibox_loss.py for details
                 objectness = torch.sigmoid(pred_outs['conf'][:, :, 0])
                 pred_outs['conf'][:, :, 1:] = objectness[:, :, None] * F.softmax(pred_outs['conf'][:, :, 1:], -1)
-                pred_outs['conf'][:, :, 0 ] = 1 - objectness
+                pred_outs['conf'][:, :, 0] = 1 - objectness
             else:
                 pred_outs['conf'] = F.softmax(pred_outs['conf'], -1)
 
             return self.detect(pred_outs)
 
 
-
-
 # Some testing code
 if __name__ == '__main__':
     from module.utils.functions import init_console
+
     init_console()
 
     # Use the first argument to set the config if you want
     import sys
+
     if len(sys.argv) > 1:
         from module.data.config import set_cfg
+
         set_cfg(sys.argv[1])
 
     net = Yolact()
@@ -627,8 +632,8 @@ if __name__ == '__main__':
             with timer.env('everything else'):
                 net(x)
             avg.add(timer.total_time())
-            print('\033[2J') # Moves console cursor to 0,0
+            print('\033[2J')  # Moves console cursor to 0,0
             timer.print_stats()
-            print('Avg fps: %.2f\tAvg ms: %.2f         ' % (1/avg.get_avg(), avg.get_avg()*1000))
+            print('Avg fps: %.2f\tAvg ms: %.2f         ' % (1 / avg.get_avg(), avg.get_avg() * 1000))
     except KeyboardInterrupt:
         pass

@@ -1,32 +1,30 @@
 #! /usr/bin/env python
 
+import cv2
 import os
 import time
 from collections import defaultdict
 
 import actionlib
 import cv_bridge
-import cv2
 import numpy as np
 import rospy
 import torch
 import torch.backends.cudnn as cudnn
-from yolact_ros.msg import Segment, Segments, SegmentationGoal, SegmentationResult, SegmentationAction
 from sensor_msgs.msg import Image
+from yolact_ros.msg import Segment, Segments, SegmentationGoal, SegmentationResult, SegmentationAction
 
 from modules.data import cfg, set_cfg, COLORS
-from modules.layers.output_utils import postprocess, undo_image_transformation
-from modules.utils import timer
+from modules.layers.output_utils import postprocess
 from modules.utils import FastBaseTransform
+from modules.utils import timer
 from modules.utils.functions import SavePath
-from yolact import Yolact
+from modules.yolact import Yolact
 
 
-class YolactRos:
+class YolactObjectDetector:
 
     def __init__(self):
-
-        rospy.init_node("yolact_server")
 
         self.iou_thresholds = [x / 100 for x in range(50, 100, 5)]
         self.coco_cats = {}
@@ -43,20 +41,33 @@ class YolactRos:
         self.top_k = rospy.get_param("~top_k", default=5)
 
         self.load_model()
-        rospy.loginfo("Ready...")
         self.server = actionlib.SimpleActionServer("yolact_ros/check_for_objects", SegmentationAction,
-                                                   self.call_back_action, auto_start=False)
+                                                   self.action_call_back, auto_start=False)
         self.subscriber = rospy.Subscriber("yolact_ros/image", Image, self.call_back, queue_size=1)
         self.image_pub = rospy.Publisher("yolact_ros/detection_image", Image, queue_size=1)
-        self.segments_info_pub = rospy.Publisher("yolact_ros/segments", Image, queue_size=1)
+        self.segments_info_pub = rospy.Publisher("yolact_ros/segments", Segments, queue_size=1)
         self.server.start()
+
+    def action_call_back(self, goal):
+        """
+        :type goal: SegmentationGoal
+        :return: SegmentationResult
+        """
+        print("subscribe")
+        image = self._bridge.imgmsg_to_cv2(goal.image)
+        msg = self.eval_image(image)
+        if not self.server.is_preempt_requested():
+            if msg is not None:
+                result = SegmentationResult()
+                result.segments = msg
+                result.id = goal.id
+                self.server.set_succeeded(result)
 
     def call_back(self, msg):
         """
         :type msg: Image
         """
         print("subscribe")
-
         image = self._bridge.imgmsg_to_cv2(msg)
         result = self.eval_image(image)
         detect_image = self.to_mask_image(image, result)
@@ -73,13 +84,13 @@ class YolactRos:
         :return:
         """
         mask_img = image.copy()
-        for i, segment in enumerate(segments.segments):  # type: Segment
+        for i, segment in enumerate(segments.segments):
             color = COLORS[i * 5 % len(COLORS)]
             for x, y in zip(segment.x_masks, segment.y_masks):
                 mask_img[y, x] = color
 
         result_img = cv2.addWeighted(image, 0.5, mask_img, 0.5, 20)
-        for i, segment in enumerate(segments.segments):  # type: Segment
+        for i, segment in enumerate(segments.segments):
             color = COLORS[i * 5 % len(COLORS)]
             x0 = segment.xmin
             y0 = segment.ymin
@@ -93,21 +104,6 @@ class YolactRos:
             cv2.putText(result_img, org=(x0, y0 + size[1]), color=(255, 0, 0), **text_config)
 
         return cv2.cvtColor(result_img, cv2.COLOR_BGR2RGB)
-
-    def call_back_action(self, goal):
-        """
-        :type goal: SegmentationGoal
-        :return: SegmentationResult
-        """
-        print("subscribe")
-        image = self._bridge.imgmsg_to_cv2(goal.image)
-        msg = self.eval_image(image)
-        if not self.server.is_preempt_requested():
-            if msg is not None:
-                result = SegmentationResult()
-                result.segments = msg
-                result.id = goal.id
-                self.server.set_succeeded(result)
 
     def load_model(self):
 
@@ -135,14 +131,16 @@ class YolactRos:
             self.net.detect.use_fast_nms = True
             cfg.mask_proto_debug = False
 
+        rospy.loginfo("Ready...")
+
     def eval_image(self, image):
         frame = torch.from_numpy(image).cuda().float()
-        batch = FastBaseTransform()(frame.unsqueeze(0))
+        batch = FastBaseTransform().forward(frame.unsqueeze(0))
         preds = self.net(batch)
 
         start = time.time()
         try:
-            msg = self.prep_display(preds, frame, None, None, undo_transform=False)
+            msg = self.prep_display(preds, frame)
         except Exception as e:
             rospy.logerr(e)
             msg = None
@@ -150,22 +148,17 @@ class YolactRos:
         rospy.loginfo("elapsed_time:{0}".format(elapsed_time) + "[sec]")
         return msg
 
-    def prep_display(self, dets_out, img, h, w, undo_transform=True, class_color=False, mask_alpha=0.45):
+    def prep_display(self, dets_out, img):
         """
         Note: If undo_transform=False then im_h and im_w are allowed to be None.
         """
-        if undo_transform:
-            img_numpy = undo_image_transformation(img, w, h)
-            img_gpu = torch.Tensor(img_numpy).cuda()
-        else:
-            img_gpu = img / 255.0
-            h, w, _ = img.shape
+        h, w, _ = img.shape
 
         with timer.env("Postprocess"):
             t = postprocess(dets_out, w, h,
                             crop_masks=True,
                             score_threshold=self.score_threshold)
-            torch.cuda.synchronize()
+            torch.cuda.synchronize(torch.cuda.current_device())
 
         with timer.env("Copy"):
             if cfg.eval_mask_branch:
@@ -181,15 +174,13 @@ class YolactRos:
 
         if num_dets_to_consider == 0:
             # No detections found so just output the original image
-            # return (img_gpu * 255).byte().cpu().numpy()
             return Segments()
 
-        mask_indices = [0] * num_dets_to_consider
+        mask_indices = [np.zeros(0)] * num_dets_to_consider
         for i in range(num_dets_to_consider):
             m = masks.byte().cpu().numpy()
             m = np.where(m[i] > 0)
             mask_indices[i] = m
-
         return self.create_msg(mask_indices, classes, scores, boxes)
 
     @staticmethod
@@ -199,23 +190,15 @@ class YolactRos:
             x1, y1, x2, y2 = boxes[i, :]
             segment = Segment()
             segment.Class = cfg.dataset.class_names[classes[i]]
-            if segment.Class == "refrigerator":
-                continue
             segment.probability = scores[i]
             segment.xmin = x1
             segment.ymin = y1
             segment.xmax = x2
             segment.ymax = y2
-            indices = mask_indices[i][1] + (640 * mask_indices[i][0])
             segment.x_masks = mask_indices[i][1]
             segment.y_masks = mask_indices[i][0]
-            segment.pixel_size = len(indices)
             segments.segments.append(segment)
 
+        sorted(segments.segments, key=lambda x: len(x.x_masks), reverse=True)
+
         return segments
-
-
-if __name__ == "__main__":
-    YolactRos()
-
-    rospy.spin()

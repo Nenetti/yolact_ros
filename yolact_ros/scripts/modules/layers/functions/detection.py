@@ -1,13 +1,11 @@
+import numpy as np
+import pyximport
 import torch
 import torch.nn.functional as F
-from modules.layers.box_utils import decode, jaccard, index2d
+
+from modules.data import cfg
+from modules.layers.box_utils import decode, jaccard
 from modules.utils import timer
-
-from modules.data import cfg, mask_type
-
-import numpy as np
-
-import pyximport
 
 pyximport.install(setup_args={"include_dirs": np.get_include()}, reload_support=True)
 

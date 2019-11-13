@@ -9,8 +9,11 @@
 # --------------------------------------------------------
 
 cimport cython
-import numpy as np
 cimport numpy as np
+
+cimport cython
+cimport numpy as np
+import numpy as np
 
 cdef inline np.float32_t max(np.float32_t a, np.float32_t b) nogil:
     return a if a >= b else b
@@ -33,7 +36,7 @@ def nms(np.ndarray[np.float32_t, ndim=2] dets, np.float32_t thresh):
 
     cdef int ndets = dets.shape[0]
     cdef np.ndarray[np.int_t, ndim=1] suppressed = \
-            np.zeros((ndets), dtype=np.int)
+        np.zeros((ndets), dtype=np.int)
 
     # nominal indices
     cdef int _i, _j
@@ -47,28 +50,28 @@ def nms(np.ndarray[np.float32_t, ndim=2] dets, np.float32_t thresh):
     cdef np.float32_t inter, ovr
 
     with nogil:
-      for _i in range(ndets):
-          i = order[_i]
-          if suppressed[i] == 1:
-              continue
-          ix1 = x1[i]
-          iy1 = y1[i]
-          ix2 = x2[i]
-          iy2 = y2[i]
-          iarea = areas[i]
-          for _j in range(_i + 1, ndets):
-              j = order[_j]
-              if suppressed[j] == 1:
-                  continue
-              xx1 = max(ix1, x1[j])
-              yy1 = max(iy1, y1[j])
-              xx2 = min(ix2, x2[j])
-              yy2 = min(iy2, y2[j])
-              w = max(0.0, xx2 - xx1 + 1)
-              h = max(0.0, yy2 - yy1 + 1)
-              inter = w * h
-              ovr = inter / (iarea + areas[j] - inter)
-              if ovr >= thresh:
-                  suppressed[j] = 1
+        for _i in range(ndets):
+            i = order[_i]
+            if suppressed[i] == 1:
+                continue
+            ix1 = x1[i]
+            iy1 = y1[i]
+            ix2 = x2[i]
+            iy2 = y2[i]
+            iarea = areas[i]
+            for _j in range(_i + 1, ndets):
+                j = order[_j]
+                if suppressed[j] == 1:
+                    continue
+                xx1 = max(ix1, x1[j])
+                yy1 = max(iy1, y1[j])
+                xx2 = min(ix2, x2[j])
+                yy2 = min(iy2, y2[j])
+                w = max(0.0, xx2 - xx1 + 1)
+                h = max(0.0, yy2 - yy1 + 1)
+                inter = w * h
+                ovr = inter / (iarea + areas[j] - inter)
+                if ovr >= thresh:
+                    suppressed[j] = 1
 
     return np.where(suppressed == 0)[0]

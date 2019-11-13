@@ -1,9 +1,9 @@
-from .config import *
 # from .coco import COCODetection, COCOAnnotationTransform, get_label_map
 #
 import torch
-import cv2
-import numpy as np
+
+from .config import *
+
 
 def detection_collate(batch):
     """Custom collate fn for dealing with batches of images that have a different

@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 import torch
+
 # from utils import timer
 from modules.data import cfg
+
 
 # @torch.jit.script
 def point_form(boxes):
@@ -12,8 +14,8 @@ def point_form(boxes):
     Return:
         boxes: (tensor) Converted xmin, ymin, xmax, ymax form of boxes.
     """
-    return torch.cat((boxes[:, :2] - boxes[:, 2:]/2,     # xmin, ymin
-                     boxes[:, :2] + boxes[:, 2:]/2), 1)  # xmax, ymax
+    return torch.cat((boxes[:, :2] - boxes[:, 2:] / 2,  # xmin, ymin
+                      boxes[:, :2] + boxes[:, 2:] / 2), 1)  # xmax, ymax
 
 
 # @torch.jit.script
@@ -25,8 +27,9 @@ def center_size(boxes):
     Return:
         boxes: (tensor) Converted xmin, ymin, xmax, ymax form of boxes.
     """
-    return torch.cat(( (boxes[:, 2:] + boxes[:, :2])/2,     # cx, cy
-                        boxes[:, 2:] - boxes[:, :2]  ), 1)  # w, h
+    return torch.cat(((boxes[:, 2:] + boxes[:, :2]) / 2,  # cx, cy
+                      boxes[:, 2:] - boxes[:, :2]), 1)  # w, h
+
 
 # @torch.jit.script
 def intersect(box_a, box_b):
@@ -69,15 +72,14 @@ def jaccard(box_a, box_b, iscrowd=False):
         box_b = box_b[None, ...]
 
     inter = intersect(box_a, box_b)
-    area_a = ((box_a[:, :, 2]-box_a[:, :, 0]) *
-              (box_a[:, :, 3]-box_a[:, :, 1])).unsqueeze(2).expand_as(inter)  # [A,B]
-    area_b = ((box_b[:, :, 2]-box_b[:, :, 0]) *
-              (box_b[:, :, 3]-box_b[:, :, 1])).unsqueeze(1).expand_as(inter)  # [A,B]
+    area_a = ((box_a[:, :, 2] - box_a[:, :, 0]) *
+              (box_a[:, :, 3] - box_a[:, :, 1])).unsqueeze(2).expand_as(inter)  # [A,B]
+    area_b = ((box_b[:, :, 2] - box_b[:, :, 0]) *
+              (box_b[:, :, 3] - box_b[:, :, 1])).unsqueeze(1).expand_as(inter)  # [A,B]
     union = area_a + area_b - inter
 
     out = inter / area_a if iscrowd else inter / union
     return out if use_batch else out.squeeze(0)
-
 
 
 def change(gt, priors):
@@ -91,12 +93,12 @@ def change(gt, priors):
     Note this returns -change so it can be a drop in replacement for 
     """
     num_priors = priors.size(0)
-    num_gt     = gt.size(0)
+    num_gt = gt.size(0)
 
     gt_w = (gt[:, 2] - gt[:, 0])[:, None].expand(num_gt, num_priors)
     gt_h = (gt[:, 3] - gt[:, 1])[:, None].expand(num_gt, num_priors)
 
-    gt_mat =     gt[:, None, :].expand(num_gt, num_priors, 4)
+    gt_mat = gt[:, None, :].expand(num_gt, num_priors, 4)
     pr_mat = priors[None, :, :].expand(num_gt, num_priors, 4)
 
     diff = gt_mat - pr_mat
@@ -105,9 +107,7 @@ def change(gt, priors):
     diff[:, :, 1] /= gt_h
     diff[:, :, 3] /= gt_h
 
-    return -torch.sqrt( (diff ** 2).sum(dim=2) )
-
-
+    return -torch.sqrt((diff ** 2).sum(dim=2))
 
 
 def match(pos_thresh, neg_thresh, truths, priors, labels, crowd_boxes, loc_t, conf_t, idx_t, idx, loc_data):
@@ -160,11 +160,11 @@ def match(pos_thresh, neg_thresh, truths, priors, labels, crowd_boxes, loc_t, co
         # Set the gt to be used for i to be j, overwriting whatever was there
         best_truth_idx[i] = j
 
-    matches = truths[best_truth_idx]            # Shape: [num_priors,4]
-    conf = labels[best_truth_idx] + 1           # Shape: [num_priors]
+    matches = truths[best_truth_idx]  # Shape: [num_priors,4]
+    conf = labels[best_truth_idx] + 1  # Shape: [num_priors]
 
     conf[best_truth_overlap < pos_thresh] = -1  # label as neutral
-    conf[best_truth_overlap < neg_thresh] =  0  # label as background
+    conf[best_truth_overlap < neg_thresh] = 0  # label as background
 
     # Deal with crowd annotations for COCO
     if crowd_boxes is not None and cfg.crowd_iou_threshold < 1:
@@ -176,9 +176,10 @@ def match(pos_thresh, neg_thresh, truths, priors, labels, crowd_boxes, loc_t, co
         conf[(conf <= 0) & (best_crowd_overlap > cfg.crowd_iou_threshold)] = -1
 
     loc = encode(matches, priors, cfg.use_yolo_regressors)
-    loc_t[idx]  = loc    # [num_priors,4] encoded offsets to learn
-    conf_t[idx] = conf   # [num_priors] top class label for each prior
-    idx_t[idx]  = best_truth_idx # [num_priors] indices for lookup
+    loc_t[idx] = loc  # [num_priors,4] encoded offsets to learn
+    conf_t[idx] = conf  # [num_priors] top class label for each prior
+    idx_t[idx] = best_truth_idx  # [num_priors] indices for lookup
+
 
 # @torch.jit.script
 def encode(matched, priors, use_yolo_regressors=False):
@@ -207,7 +208,7 @@ def encode(matched, priors, use_yolo_regressors=False):
         variances = [0.1, 0.2]
 
         # dist b/t match center and prior's center
-        g_cxcy = (matched[:, :2] + matched[:, 2:])/2 - priors[:, :2]
+        g_cxcy = (matched[:, :2] + matched[:, 2:]) / 2 - priors[:, :2]
         # encode variance
         g_cxcy /= (variances[0] * priors[:, 2:])
         # match wh / prior wh
@@ -217,6 +218,7 @@ def encode(matched, priors, use_yolo_regressors=False):
         loc = torch.cat([g_cxcy, g_wh], 1)  # [num_priors,4]
 
     return loc
+
 
 # @torch.jit.script
 def decode(loc, priors, use_yolo_regressors=False):
@@ -266,7 +268,6 @@ def decode(loc, priors, use_yolo_regressors=False):
     return boxes
 
 
-
 def log_sum_exp(x):
     """Utility function for computing log_sum_exp while determining
     This will be used to determine unaveraged confidence loss across
@@ -275,7 +276,7 @@ def log_sum_exp(x):
         x (Variable(tensor)): conf_preds from conf layers
     """
     x_max = x.data.max()
-    return torch.log(torch.sum(torch.exp(x-x_max), 1)) + x_max
+    return torch.log(torch.sum(torch.exp(x - x_max), 1)) + x_max
 
 
 # @torch.jit.script
@@ -294,8 +295,8 @@ def sanitize_coordinates(_x1, _x2, img_size, padding=0, cast=True):
         _x2 = _x2.long()
     x1 = torch.min(_x1, _x2)
     x2 = torch.max(_x1, _x2)
-    x1 = torch.clamp(x1-padding, min=0)
-    x2 = torch.clamp(x2+padding, max=img_size)
+    x1 = torch.clamp(x1 - padding, min=0)
+    x2 = torch.clamp(x2 + padding, max=img_size)
 
     return x1, x2
 
@@ -317,15 +318,14 @@ def crop(masks, boxes, padding=1):
     rows = torch.arange(w, device=masks.device, dtype=x1.dtype).view(1, -1, 1).expand(h, w, n)
     cols = torch.arange(h, device=masks.device, dtype=x1.dtype).view(-1, 1, 1).expand(h, w, n)
 
-    masks_left  = rows >= x1.view(1, 1, -1)
-    masks_right = rows <  x2.view(1, 1, -1)
-    masks_up    = cols >= y1.view(1, 1, -1)
-    masks_down  = cols <  y2.view(1, 1, -1)
+    masks_left = rows >= x1.view(1, 1, -1)
+    masks_right = rows < x2.view(1, 1, -1)
+    masks_up = cols >= y1.view(1, 1, -1)
+    masks_down = cols < y2.view(1, 1, -1)
 
     crop_mask = masks_left * masks_right * masks_up * masks_down
 
     return masks * crop_mask.float()
-
 
 
 def index2d(src, idx):
@@ -339,6 +339,6 @@ def index2d(src, idx):
     """
 
     offs = torch.arange(idx.size(0), device=idx.device)[:, None].expand_as(idx)
-    idx  = idx + offs * idx.size(1)
+    idx = idx + offs * idx.size(1)
 
     return src.view(-1)[idx.view(-1)].view(idx.size())

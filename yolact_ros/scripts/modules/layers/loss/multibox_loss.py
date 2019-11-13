@@ -4,9 +4,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
-from modules.layers.box_utils import match, log_sum_exp, decode, center_size, crop
 
 from modules.data import cfg, mask_type, activation_func
+from modules.layers.box_utils import match, log_sum_exp, decode, center_size, crop
+
 
 class MultiBoxLoss(nn.Module):
     """SSD Weighted Loss Function

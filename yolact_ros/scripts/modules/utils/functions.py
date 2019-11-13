@@ -1,9 +1,10 @@
-
-import torch
 import os
 import math
+import os
 from collections import deque
+
 from pathlib import Path
+
 
 class MovingAverage():
     """ Keeps an average window of the specified number of items. """
@@ -17,13 +18,13 @@ class MovingAverage():
         if not math.isfinite(elem):
             print('Warning: Moving average ignored a value of %f' % elem)
             return
-        
+
         self.window.append(elem)
         self.sum += elem
 
         if len(self.window) > self.max_window_size:
             self.sum -= self.window.popleft()
-    
+
     def append(self, elem):
         """ Same as add just more pythonic. """
         self.add(elem)
@@ -39,7 +40,7 @@ class MovingAverage():
 
     def __str__(self):
         return str(self.get_avg())
-    
+
     def __repr__(self):
         return repr(self.get_avg())
 
@@ -51,7 +52,7 @@ class ProgressBar():
         self.max_val = max_val
         self.length = length
         self.cur_val = 0
-        
+
         self.cur_num_bars = -1
         self._update_str()
 
@@ -64,7 +65,7 @@ class ProgressBar():
             self.cur_val = 0
 
         self._update_str()
-    
+
     def is_finished(self):
         return self.cur_val == self.max_val
 
@@ -74,10 +75,10 @@ class ProgressBar():
         if num_bars != self.cur_num_bars:
             self.cur_num_bars = num_bars
             self.string = '|' * num_bars + '|' * (self.length - num_bars)
-    
+
     def __repr__(self):
         return self.string
-    
+
     def __str__(self):
         return self.string
 
@@ -110,32 +111,32 @@ class SavePath:
     @staticmethod
     def from_str(path):
         file_name = os.path.basename(path)
-        
+
         if file_name.endswith('.pth'):
             file_name = file_name[:-4]
-        
+
         params = file_name.split('_')
 
         if file_name.endswith('interrupt'):
             params = params[:-1]
-        
+
         model_name = '_'.join(params[:-2])
         epoch = params[-2]
         iteration = params[-1]
-        
+
         return SavePath(model_name, int(epoch), int(iteration))
 
     @staticmethod
     def remove_interrupt(save_folder):
         for p in Path(save_folder).glob('*_interrupt.pth'):
             p.unlink()
-    
+
     @staticmethod
     def get_interrupt(save_folder):
-        for p in Path(save_folder).glob('*_interrupt.pth'): 
+        for p in Path(save_folder).glob('*_interrupt.pth'):
             return str(p)
         return None
-    
+
     @staticmethod
     def get_latest(save_folder, config):
         """ Note: config should be config.name. """
@@ -148,8 +149,8 @@ class SavePath:
             try:
                 save = SavePath.from_str(path_name)
             except:
-                continue 
-            
+                continue
+
             if save.model_name == config and save.iteration > max_iter:
                 max_iter = save.iteration
                 max_name = path_name

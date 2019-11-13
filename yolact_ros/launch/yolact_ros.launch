@@ -4,7 +4,7 @@
 
     <arg name="weights_path" default="$(find yolact_ros)/weights"/>
 
-    <node pkg="yolact_ros" type="yolact_server.py" name="yolact_server" output="screen">
+    <node pkg="yolact_ros" type="yolact_object_detector_node.py" name="yolact_ros" output="screen">
         <param name="trained_model" value="$(arg weights_path)/yolact_base_54_800000.pth"/>
         <param name="score_threshold" value="0.3"/>
         <param name="top_k" value="100"/>
