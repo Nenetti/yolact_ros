@@ -2,12 +2,12 @@
 <package format="2">
   <name>yolact_ros</name>
   <version>1.0.0</version>
-  <description>The 'em_spco_tidy_up' package enables probabilistic tidying using Spatial Concepts (SpaCoTy).</description>
+  <description>The 'yolact_ros' package provides real-time instance segmentation.</description>
 
-  <maintainer email="isobe.shota@em.ci.ritsumei.ac.jp">Shota Isobe</maintainer>
+  <maintainer email="kanechika.akinori@em.ci.ritsumei.ac.jp">Akinori Kanechika</maintainer>
   <license>MIT</license>
   <url type="website">http://em.ci.ritsumei.ac.jp/</url>
-  <author email="isobe.shota@em.ci.ritsumei.ac.jp">Shota Isobe</author>
+  <author email="kanechika.akinori@em.ci.ritsumei.ac.jp">Akinori Kanechika</author>
 
   <buildtool_depend>catkin</buildtool_depend>
 
@@ -23,8 +23,5 @@
   <exec_depend>sensor_msgs</exec_depend>
   <exec_depend>message_runtime</exec_depend>
   <exec_depend>std_msgs</exec_depend>
-
-
-
-
 </package>
+
