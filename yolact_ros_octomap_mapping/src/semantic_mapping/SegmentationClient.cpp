@@ -71,23 +71,21 @@ namespace semantic_mapping {
         for (auto &color:bounding_box_colors) {
             color = cv::Scalar(rand100(mt), rand100(mt), rand100(mt));
         }
+        int x, y;
         for (int i = 0; i < int(segments.segments.size()); ++i) {
             cv::Scalar *color = &bounding_box_colors[i];
             const yolact_ros::Segment *segment = &segments.segments[i];
-            for (int k = 0; k < int(segment->encoded_pixels.size()); k += 2) {
-                int index = segment->encoded_pixels[k];
-                int length = segment->encoded_pixels[k + 1];
-                for (int n = index; n < index + length; ++n) {
-                    int x = n % 640;
-                    int y = n / 640;
-                    cv::Vec3b *src = &cv_mask.at<cv::Vec3b>(y, x);
-                    (*src)[0] = (*color)[0];
-                    (*src)[1] = (*color)[1];
-                    (*src)[2] = (*color)[2];
-                }
+            for (int k = 0; k < int(segment->x_masks.size()); ++k) {
+                x = segment->x_masks[k];
+                y = segment->y_masks[k];
+                cv::Vec3b *src = &cv_mask.at<cv::Vec3b>(y, x);
+                (*src)[0] = (*color)[0];
+                (*src)[1] = (*color)[1];
+                (*src)[2] = (*color)[2];
             }
         }
         cv::addWeighted(cv_image, 0.5, cv_mask, 0.5, 20, mask_image);
+        int base_line = 0;
         for (int i = 0; i < int(segments.segments.size()); ++i) {
             const yolact_ros::Segment *segment = &segments.segments[i];
             std::string text = segment->Class;
@@ -99,7 +97,7 @@ namespace semantic_mapping {
             int y1 = segment->ymin;
             int y2 = segment->ymax;
             cv::rectangle(mask_image, cv::Point(x1, y1), cv::Point(x2, y2), *color, 2);
-            cv::Size text_size = cv::getTextSize(text, cv::FONT_HERSHEY_DUPLEX, 0.6, 1, 0);
+            cv::Size text_size = cv::getTextSize(text, cv::FONT_HERSHEY_DUPLEX, 0.6, 1, &base_line);
             cv::rectangle(mask_image, cv::Point(x1, y1), cv::Point(x1 + text_size.width, y1 - text_size.height - 4), *color, -1);
             cv::putText(mask_image, text, cv::Point(x1, y1 - 3), cv::FONT_HERSHEY_DUPLEX, 0.6, text_color, 1, 16);
         }
@@ -116,18 +114,16 @@ namespace semantic_mapping {
      */
     void SegmentationClient::encoding_pixel_to_mask(std::vector<Segment> &segments, std::vector<int8_t> &mask_map) {
         int i = 0;
+        int index, x, y;
         for (auto &segment:segments) {
             auto *mask = &segment.mask;
-            mask->resize(segment.segment.pixel_size);
-            int k = 0;
-            for (int m = 0; m < int(segment.segment.encoded_pixels.size()); m += 2) {
-                int index = segment.segment.encoded_pixels[m];
-                int length = segment.segment.encoded_pixels[m + 1];
-                for (int n = index; n < index + length; ++n) {
-                    mask_map[n] = i;
-                    (*mask)[k] = n;
-                    ++k;
-                }
+            mask->resize(segment.segment.x_masks.size());
+            for (int k = 0; k < int(segment.segment.x_masks.size()); ++k) {
+                x = segment.segment.x_masks[k];
+                y = segment.segment.y_masks[k];
+                index = x + y * 640;
+                mask_map[index] = i;
+                (*mask)[k] = index;
             }
             ++i;
         }
@@ -141,14 +137,10 @@ namespace semantic_mapping {
     void SegmentationClient::sort_segments(std::vector<Segment> &segments) {
         std::vector<Segment *> sort(segments.size());
         std::vector<std::pair<int, int>> pairs(segments.size());
-        for (int i = 0; i < segments.size(); ++i) {
-            pairs[i] = std::make_pair(segments[i].segment.pixel_size, i);
-        }
-        std::sort(pairs.begin(), pairs.end(), std::greater<std::pair<int, int>>());
-        for (int i = 0; i < segments.size(); ++i) {
+        for (int i = 0; i < int(segments.size()); ++i) {
             sort[i] = &segments[pairs[i].second];
         }
-        for (int i = 0; i < segments.size(); ++i) {
+        for (int i = 0; i < int(segments.size()); ++i) {
             segments[i] = *sort[i];
         }
     }
