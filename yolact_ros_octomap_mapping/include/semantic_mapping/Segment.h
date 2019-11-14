@@ -28,7 +28,7 @@ namespace semantic_mapping {
 
             std::vector<int> mask;
 
-            std::vector<Cluster *> clusters;
+            std::vector<Cluster> clusters;
             std::vector<int> cluster_occupied;
 
             int r, g, b;
