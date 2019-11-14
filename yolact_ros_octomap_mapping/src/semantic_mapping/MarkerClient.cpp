@@ -18,22 +18,20 @@ namespace semantic_mapping {
      * セグメント情報をまとめてPublishするための呼び出し関数
      * @param cloud
      * @param segments
-     * @param is_exclude
      */
-    void MarkerClient::publish_segment_info(const PointCloud<PointXYZRGB> &cloud, const std::vector<Segment> &segments, const std::vector<bool> &is_exclude) {
-        publish_line_list(cloud, segments, is_exclude);
-        publish_segment_name(cloud, segments, is_exclude);
+    void MarkerClient::publish_segment_info(const PointCloud<PointXYZRGB> &cloud, const std::vector<Segment> &segments) {
+        publish_line_list(cloud, segments);
+        publish_segment_name(cloud, segments);
     }
 
     /*******************************************************************************************************************
      * セグメントを3次元的に囲むMarkerをPublishする
      * @param cloud
      * @param segments
-     * @param is_exclude
      */
-    void MarkerClient::publish_line_list(const PointCloud<PointXYZRGB> &cloud, const std::vector<Segment> &segments, const std::vector<bool> &is_exclude) {
+    void MarkerClient::publish_line_list(const PointCloud<PointXYZRGB> &cloud, const std::vector<Segment> &segments) {
         std::vector<std::vector<geometry_msgs::Point>> line_list;
-        to_line_list(cloud, segments, is_exclude, line_list);
+        to_line_list(cloud, segments, line_list);
 
         visualization_msgs::MarkerArray marker_array;
         marker_array.markers.resize(100);
@@ -64,9 +62,8 @@ namespace semantic_mapping {
      * セグメントの名前表すMarkerをPublishする
      * @param cloud
      * @param segments
-     * @param is_exclude
      */
-    void MarkerClient::publish_segment_name(const PointCloud<PointXYZRGB> &cloud, const std::vector<Segment> &segments, const std::vector<bool> &is_exclude) {
+    void MarkerClient::publish_segment_name(const PointCloud<PointXYZRGB> &cloud, const std::vector<Segment> &segments) {
         visualization_msgs::MarkerArray marker_array;
         marker_array.markers.resize(100);
         for (int i = 0; i < int(marker_array.markers.size()); ++i) {
@@ -98,10 +95,9 @@ namespace semantic_mapping {
      *
      * @param cloud
      * @param segments
-     * @param is_exclude
      * @param line_list
      */
-    void MarkerClient::to_line_list(const PointCloud<PointXYZRGB> &cloud, const std::vector<Segment> &segments, const std::vector<bool> &is_exclude,
+    void MarkerClient::to_line_list(const PointCloud<PointXYZRGB> &cloud, const std::vector<Segment> &segments,
                                     std::vector<std::vector<geometry_msgs::Point>> &line_list) {
         line_list.resize(segments.size());
         std::vector<std::vector<PointXYZRGB>> vectors(segments.size());

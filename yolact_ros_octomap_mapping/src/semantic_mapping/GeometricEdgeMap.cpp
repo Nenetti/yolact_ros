@@ -84,7 +84,7 @@ namespace semantic_mapping {
         //************************************************************************************************************//
         // Publish
         //************************************************************************************************************//
-        m_marker_client.publish_segment_info(cloud, segments, is_exclude);
+        m_marker_client.publish_segment_info(cloud, segments);
         publish_geometric_image(cloud, segments, is_exclude);
     }
 
@@ -190,11 +190,11 @@ namespace semantic_mapping {
                 }
             }
             index = std::max_element(occupied.begin(), occupied.end()) - occupied.begin();
-            segment.clusters.emplace_back(&clusters[index]);
+            segment.clusters.emplace_back(clusters[index]);
             segment.cluster_occupied.emplace_back(occupied[index]);
             for (int i = 0; i < index; ++i) {
                 if (occupied[i] / size > 0.1) {
-                    segment.clusters.emplace_back(&clusters[i]);
+                    segment.clusters.emplace_back(clusters[i]);
                     segment.cluster_occupied.emplace_back(occupied[i]);
                 }
             }
@@ -280,7 +280,7 @@ namespace semantic_mapping {
             double ave_x = 0, ave_y = 0, ave_z = 0;
             int count = 0;
             for (auto &cluster:segment.clusters) {
-                for (auto &index : cluster->indices) {
+                for (auto &index : cluster.indices) {
                     if (!is_exclude[index]) {
                         auto *point = &cloud[index];
                         if (point->x < min_x) {
@@ -334,7 +334,7 @@ namespace semantic_mapping {
         cv::Mat image(cloud.height, cloud.width, CV_8UC3, cv::Scalar(255, 255, 255));
         for (auto &segment:segments) {
             for (auto &cluster:segment.clusters) {
-                for (auto &index:cluster->indices) {
+                for (auto &index:cluster.indices) {
                     int x = int(index % cloud.width);
                     int y = int(index / cloud.width);
                     auto *src = &image.at<cv::Vec3b>(y, x);

@@ -13,7 +13,7 @@ namespace semantic_mapping {
         int i = 0;
         for (auto &segment:segments) {
             for (auto &cluster:segment.clusters) {
-                for (auto index:cluster->indices) {
+                for (auto index:cluster.indices) {
                     segment_map[index] = i;
                 }
             }
