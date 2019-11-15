@@ -2,20 +2,26 @@
 // Created by ubuntu on 2019/10/16.
 //
 
-#include <semantic_mapping/GeometricEdgeMap.h>
+#include <segmentation_server/semantic_mapping.h>
 #include <sensor_msgs/Image.h>
 #include <semantic_mapping/Filter.h>
-#include <semantic_mapping/SegmentationClient.h>
 #include <omp.h>
 #include <cv_bridge/cv_bridge.h>
 
-namespace semantic_mapping {
+namespace segmentation_server {
+
+
+    using pcl::PointCloud;
+    using pcl::PointXYZRGB;
+    using pcl::PointXYZRGBL;
+    using semantic_mapping::Filter;
+    using semantic_mapping::Segment;
+    using semantic_mapping::Cluster;
 
     /*******************************************************************************************************************
      * コンストラクター
      */
-    GeometricEdgeMap::GeometricEdgeMap() : m_ground_filter(0) {
-        geometric_publisher = m_nh.advertise<sensor_msgs::Image>("geometric_map", 1, true);
+    SemanticMapping::SemanticMapping() : m_ground_filter(DBL_MIN), m_ceiling_filter(DBL_MAX) {
         init_color(100);
     }
 
@@ -25,18 +31,11 @@ namespace semantic_mapping {
      *
      * @param cloud
      * @param segments
-     * @param ground
-     * @param ceiling
-     * @param nonground_nonseg
-     * @param nonground_seg
      */
-    void GeometricEdgeMap::toSegmentation(PointCloud<PointXYZRGB> &cloud, std::vector<Segment> &segments,
-                                          PointCloud<PointXYZRGB> &ground, PointCloud<PointXYZRGB> &ceiling,
-                                          PointCloud<PointXYZRGB> &nonground_nonseg, PointCloud<PointXYZRGBL> &nonground_seg) {
+    void SemanticMapping::to_segmentation(PointCloud<PointXYZRGB> &cloud, std::vector<Segment> &segments, std::vector<Cluster> &clusters) {
         //************************************************************************************************************//
         // Init
         //************************************************************************************************************//
-        std::vector<std::vector<int>> seg_ids(cloud.size());
         std::vector<bool> is_ground(cloud.size(), false);
         std::vector<bool> is_ceiling(cloud.size(), false);
         std::vector<bool> is_infinite(cloud.size(), false);
@@ -47,16 +46,14 @@ namespace semantic_mapping {
         std::vector<int8_t> mask_map(cloud.size(), -1);
         std::vector<int8_t> segment_map(cloud.size(), -1);
         std::vector<int> cluster_ids(cloud.size(), -1);
-        std::vector<Cluster> clusters;
 
-        SegmentationClient::encoding_pixel_to_mask(segments, mask_map);
+        to_mask_map(segments, mask_map);
 
         //************************************************************************************************************//
         // Filtering
         //************************************************************************************************************//
-
-        int ground_point_size = Filter::ground_filter(cloud, is_ground, m_ground_filter);
-        int ceilign_point_size = Filter::ceiling_filter(cloud, is_ceiling, m_ceiling_filter);
+        Filter::ground_filter(cloud, is_ground, m_ground_filter);
+        Filter::ceiling_filter(cloud, is_ceiling, m_ceiling_filter);
         Filter::infinite_filter(cloud, is_infinite);
         Filter::combine_bool_filter(is_infinite, is_ground, is_exclude);
         Filter::combine_bool_filter(is_exclude, is_ceiling, is_exclude);
@@ -66,26 +63,25 @@ namespace semantic_mapping {
         Filter::combine_bool_filter(is_depth_edge, is_mask_edge, edge_map);
         Filter::combine_bool_filter(is_exclude, edge_map, edge_map);
 
+
         //************************************************************************************************************//
         // Clustering
         //************************************************************************************************************//
         clustering_from_edge(cloud, edge_map, cluster_ids, clusters, 0.05f);
         detect_segmentation_cluster(cluster_ids, clusters, segments);
-        Filter::cluster_filter(segments, clusters, segment_map);
+//        Filter::cluster_filter(segments, clusters, segment_map);
 
         //************************************************************************************************************//
         // After Process
         //************************************************************************************************************//
         calc_segment_range(cloud, is_exclude, segments);
         set_color(segments);
-        set_result(cloud, is_ground, is_ceiling, is_infinite, segment_map, segments, ground_point_size, ceilign_point_size, ground, ceiling, nonground_nonseg,
-                   nonground_seg);
 
-        //************************************************************************************************************//
-        // Publish
-        //************************************************************************************************************//
-        m_marker_client.publish_segment_info(cloud, segments);
-        publish_geometric_image(cloud, segments, is_exclude);
+//        //************************************************************************************************************//
+//        // Publish
+//        //************************************************************************************************************//
+//        m_marker_client.publish_segment_info(cloud, segments, is_exclude);
+//        publish_segmentation_filter_image(cloud, segments, is_exclude);
     }
 
 
@@ -98,8 +94,8 @@ namespace semantic_mapping {
      * @param clusters
      * @param threshold
      */
-    void GeometricEdgeMap::clustering_from_edge(const PointCloud<PointXYZRGB> &cloud, const std::vector<bool> &edge_map,
-                                                std::vector<int> &cluster_ids, std::vector<Cluster> &clusters, double threshold) {
+    void SemanticMapping::clustering_from_edge(const PointCloud<PointXYZRGB> &cloud, const std::vector<bool> &edge_map,
+                                               std::vector<int> &cluster_ids, std::vector<Cluster> &clusters, double threshold) {
         int width = cloud.width;
         int height = cloud.height;
         int now_cluster_id = 0;
@@ -157,7 +153,9 @@ namespace semantic_mapping {
             }
             std::vector<int> copy(cluster_end - cluster_begin);
             std::copy(cluster.begin(), cluster.begin() + cluster_end, copy.begin());
-            Cluster c(copy, cloud[copy[0]].y);
+            auto &nearest_point = cloud[copy[0]];
+            double depth = std::sqrt(nearest_point.x * nearest_point.x + nearest_point.y * nearest_point.y + nearest_point.z * nearest_point.z);
+            Cluster c(copy, depth);
             c.depth = ave_d / copy.size();
             clusters.emplace_back(c);
             ++now_cluster_id;
@@ -167,7 +165,7 @@ namespace semantic_mapping {
             cluster_end = 0;
         }
         clusters.shrink_to_fit();
-        ROS_INFO("Clusters: %d, %zu", now_cluster_id, clusters.size());
+//        ROS_INFO("Clusters: %d, %zu", now_cluster_id, clusters.size());
     }
 
     /*******************************************************************************************************************
@@ -177,7 +175,7 @@ namespace semantic_mapping {
      * @param clusters
      * @param segments
      */
-    void GeometricEdgeMap::detect_segmentation_cluster(const std::vector<int> &cluster_ids, std::vector<Cluster> &clusters, std::vector<Segment> &segments) {
+    void SemanticMapping::detect_segmentation_cluster(const std::vector<int> &cluster_ids, std::vector<Cluster> &clusters, std::vector<Segment> &segments) {
         std::vector<double> occupied;
         int id, index, size;
         for (auto &segment:segments) {
@@ -202,79 +200,13 @@ namespace semantic_mapping {
     }
 
     /*******************************************************************************************************************
-     * 地面点群、通常点群、セグメンテーション点群のそれぞれに入力点群を分類する
-     *
-     * @param cloud
-     * @param is_ground
-     * @param is_infinite
-     * @param segment_map
-     * @param segments
-     * @param ground_point_size
-     * @param ceiling_point_size
-     * @param ground
-     * @param ceiling
-     * @param nonground_nonseg
-     * @param nonground_seg
-     */
-    void GeometricEdgeMap::set_result(const PointCloud<PointXYZRGB> &cloud,
-                                      const std::vector<bool> &is_ground, const std::vector<bool> &is_ceiling, const std::vector<bool> &is_infinite,
-                                      const std::vector<int8_t> &segment_map, const std::vector<Segment> &segments,
-                                      int ground_point_size, int ceiling_point_size,
-                                      PointCloud<PointXYZRGB> &ground, PointCloud<PointXYZRGB> &ceiling,
-                                      PointCloud<PointXYZRGB> &nonground_nonseg, PointCloud<PointXYZRGBL> &nonground_seg) {
-        int width = cloud.width;
-        int height = cloud.height;
-        int size = width * height;
-        int ground_index = 0;
-        int ceiling_index = 0;
-        int nonseg_index = 0;
-        int seg_index = 0;
-        ground.resize(ground_point_size);
-        ceiling.resize(ceiling_point_size);
-        nonground_nonseg.resize(size - (ground_point_size + ceiling_point_size));
-        nonground_seg.resize(size - (ground_point_size + ceiling_point_size));
-        for (int i = 0; i < int(cloud.size()); ++i) {
-            if (is_infinite[i]) {
-                continue;
-            }
-            auto *point = &cloud[i];
-            if (is_ground[i]) {
-                ground[ground_index] = *point;
-                ++ground_index;
-                continue;
-            }
-            if (is_ceiling[i]) {
-                ceiling[ceiling_index] = *point;
-                ++ceiling_index;
-                continue;
-            }
-            int id = segment_map[i];
-            if (id != -1) {
-                auto &segment = segments[id];
-                PointXYZRGBL p = PointXYZRGBL(segment.r, segment.g, segment.b, id);
-                p.x = point->x;
-                p.y = point->y;
-                p.z = point->z;
-                nonground_seg[seg_index] = p;
-                ++seg_index;
-            } else {
-                nonground_nonseg[nonseg_index] = *point;
-                ++nonseg_index;
-            }
-        }
-        nonground_nonseg.resize(nonseg_index);
-        nonground_seg.resize(seg_index);
-    }
-
-
-    /*******************************************************************************************************************
      * 各セグメントの座標範囲を求める
      *
      * @param cloud
      * @param is_exclude
      * @param segments
      */
-    void GeometricEdgeMap::calc_segment_range(const PointCloud<PointXYZRGB> &cloud, const std::vector<bool> &is_exclude, std::vector<Segment> &segments) {
+    void SemanticMapping::calc_segment_range(const PointCloud<PointXYZRGB> &cloud, const std::vector<bool> &is_exclude, std::vector<Segment> &segments) {
         for (auto &segment : segments) {
             double min_x = DBL_MAX, max_x = -DBL_MAX, min_y = DBL_MAX, max_y = -DBL_MAX, min_z = DBL_MAX, max_z = -DBL_MAX;
             double ave_x = 0, ave_y = 0, ave_z = 0;
@@ -321,50 +253,11 @@ namespace semantic_mapping {
     }
 
     /*******************************************************************************************************************
-     *
-     * 結果を画像データに変換してPublishする
-     * 主に、デバッグ用
-     *
-     * @param cloud
-     * @param segments
-     * @param is_exclude
-     */
-    void GeometricEdgeMap::publish_geometric_image(const PointCloud<PointXYZRGB> &cloud, const std::vector<Segment> &segments,
-                                                   const std::vector<bool> &is_exclude) {
-        cv::Mat image(cloud.height, cloud.width, CV_8UC3, cv::Scalar(255, 255, 255));
-        for (auto &segment:segments) {
-            for (auto &cluster:segment.clusters) {
-                for (auto &index:cluster.indices) {
-                    int x = int(index % cloud.width);
-                    int y = int(index / cloud.width);
-                    auto *src = &image.at<cv::Vec3b>(y, x);
-                    (*src)[0] = segment.b;
-                    (*src)[1] = segment.g;
-                    (*src)[2] = segment.r;
-                }
-            }
-        }
-        for (int i = 0; i < int(cloud.size()); ++i) {
-            int x = int(i % cloud.width);
-            int y = int(i / cloud.width);
-            auto *src = &image.at<cv::Vec3b>(y, x);
-            if (is_exclude[i]) {
-                (*src)[0] = 0;
-                (*src)[1] = 0;
-                (*src)[2] = 0;
-            }
-        }
-        sensor_msgs::ImagePtr ros_image = cv_bridge::CvImage(std_msgs::Header(), "bgr8", image).toImageMsg();
-        geometric_publisher.publish(ros_image);
-    }
-
-
-    /*******************************************************************************************************************
      * 使用カラーを事前に定義する
      *
      * @param size
      */
-    void GeometricEdgeMap::init_color(int size) {
+    void SemanticMapping::init_color(int size) {
         m_colors.resize(size);
         std::random_device rnd;
         std::mt19937 mt(rnd());
@@ -390,11 +283,23 @@ namespace semantic_mapping {
      *
      * @param segments
      */
-    void GeometricEdgeMap::set_color(std::vector<Segment> &segments) {
+    void SemanticMapping::set_color(std::vector<Segment> &segments) {
         for (int i = 0; i < int(segments.size()); ++i) {
             auto *segment = &segments[i];
             auto *color = &m_colors[i];
             segment->set_rgb(color->r, color->g, color->b);
+        }
+    }
+
+    void SemanticMapping::to_mask_map(std::vector<Segment> &segments, std::vector<int8_t> &mask_map) {
+        int i = 0;
+        for (auto &segment:segments) {
+            for (int k = 0; k < int(segment.segment.x_masks.size()); ++k) {
+                int x = segment.segment.x_masks[k];
+                int y = segment.segment.y_masks[k];
+                mask_map[x + y * 640] = i;
+            }
+            ++i;
         }
     }
 
@@ -403,7 +308,7 @@ namespace semantic_mapping {
      *
      * @param ground_filter
      */
-    void GeometricEdgeMap::set_filter(double ground_filter, double ceiling_filter) {
+    void SemanticMapping::set_filter(double ground_filter, double ceiling_filter) {
         m_ground_filter = ground_filter;
         m_ceiling_filter = ceiling_filter;
     }

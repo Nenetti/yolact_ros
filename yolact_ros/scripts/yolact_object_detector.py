@@ -63,6 +63,11 @@ class YolactObjectDetector:
                 result.id = goal.id
                 self.server.set_succeeded(result)
 
+                detect_image = self.to_mask_image(image, msg)
+                result_msg = self._bridge.cv2_to_imgmsg(detect_image)
+                result_msg.header.stamp = rospy.Time.now()
+                self.image_pub.publish(result_msg)
+
     def call_back(self, msg):
         """
         :type msg: Image

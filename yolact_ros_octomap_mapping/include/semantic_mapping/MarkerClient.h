@@ -32,7 +32,7 @@ namespace semantic_mapping {
             MarkerClient();
 
 
-            void publish_segment_info(const PointCloud<PointXYZRGB> &cloud, const std::vector<Segment> &segments, const std::vector<bool> &is_exclude);
+            void publish_segment_info(const PointCloud<PointXYZRGB> &cloud, const std::vector<Segment> &segments);
 
         protected:
             ros::NodeHandle m_nh;
@@ -40,11 +40,11 @@ namespace semantic_mapping {
             int m_line_list_id_base = 1000;
             int m_segment_name_id_base = 1100;
 
-            void publish_line_list(const PointCloud<PointXYZRGB> &cloud, const std::vector<Segment> &segments, const std::vector<bool> &is_exclude);
+            void publish_line_list(const PointCloud<PointXYZRGB> &cloud, const std::vector<Segment> &segments);
 
-            void publish_segment_name(const PointCloud<PointXYZRGB> &cloud, const std::vector<Segment> &segments, const std::vector<bool> &is_exclude);
+            void publish_segment_name(const PointCloud<PointXYZRGB> &cloud, const std::vector<Segment> &segments);
 
-            static void to_line_list(const PointCloud<PointXYZRGB> &cloud, const std::vector<Segment> &segments, const std::vector<bool> &is_exclude,
+            static void to_line_list(const PointCloud<PointXYZRGB> &cloud, const std::vector<Segment> &segments,
                                      std::vector<std::vector<geometry_msgs::Point>> &line_list);
 
             static void set_scale(double x, double y, double z, geometry_msgs::Vector3_<std::allocator<void>> &vector);
