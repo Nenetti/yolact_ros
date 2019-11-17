@@ -4,7 +4,7 @@
 
 #include <segmentation_server/semantic_mapping.h>
 #include <sensor_msgs/Image.h>
-#include <semantic_mapping/Filter.h>
+#include <semantic_mapping/filter.h>
 #include <omp.h>
 #include <cv_bridge/cv_bridge.h>
 
@@ -50,7 +50,7 @@ namespace segmentation_server {
         to_mask_map(segments, mask_map);
 
         //************************************************************************************************************//
-        // Filtering
+        // Filtering (Edge detection)
         //************************************************************************************************************//
         Filter::ground_filter(cloud, is_ground, m_ground_filter);
         Filter::ceiling_filter(cloud, is_ceiling, m_ceiling_filter);
@@ -63,25 +63,17 @@ namespace segmentation_server {
         Filter::combine_bool_filter(is_depth_edge, is_mask_edge, edge_map);
         Filter::combine_bool_filter(is_exclude, edge_map, edge_map);
 
-
         //************************************************************************************************************//
-        // Clustering
+        // Clustering from edge
         //************************************************************************************************************//
         clustering_from_edge(cloud, edge_map, cluster_ids, clusters, 0.05f);
         detect_segmentation_cluster(cluster_ids, clusters, segments);
-//        Filter::cluster_filter(segments, clusters, segment_map);
 
         //************************************************************************************************************//
         // After Process
         //************************************************************************************************************//
         calc_segment_range(cloud, is_exclude, segments);
         set_color(segments);
-
-//        //************************************************************************************************************//
-//        // Publish
-//        //************************************************************************************************************//
-//        m_marker_client.publish_segment_info(cloud, segments, is_exclude);
-//        publish_segmentation_filter_image(cloud, segments, is_exclude);
     }
 
 
@@ -128,17 +120,17 @@ namespace segmentation_server {
                 int indexB = queue[queue_begin];
                 int cx = indexB % width;
                 int cy = indexB / width;
-                auto *pointB = &cloud[cx + cy * width];
-                double various_threshold = threshold * (1 + std::sqrt(pointB->x * pointB->x + pointB->y * pointB->y + pointB->z * pointB->z) * 0.25);
-                ave_d += std::sqrt(pointB->x * pointB->x + pointB->y * pointB->y + pointB->z * pointB->z);
+                auto &pointB = cloud[cx + cy * width];
+                double various_threshold = threshold * (1 + std::sqrt(pointB.x * pointB.x + pointB.y * pointB.y + pointB.z * pointB.z) * 0.25);
+                ave_d += std::sqrt(pointB.x * pointB.x + pointB.y * pointB.y + pointB.z * pointB.z);
                 for (int tx = std::max(0, cx - 1); tx <= std::min(cx + 1, width - 1); ++tx) {
                     for (int ty = std::max(0, cy - 1); ty <= std::min(cy + 1, height - 1); ++ty) {
                         int indexC = tx + ty * width;
                         if (cluster_ids[indexC] == -1 && !edge_map[indexC]) {
-                            auto *pointC = &cloud[tx + ty * width];
-                            dx = std::abs(pointB->x - pointC->x);
-                            dy = std::abs(pointB->y - pointC->y);
-                            dz = std::abs(pointB->z - pointC->z);
+                            auto &pointC = cloud[tx + ty * width];
+                            dx = std::abs(pointB.x - pointC.x);
+                            dy = std::abs(pointB.y - pointC.y);
+                            dz = std::abs(pointB.z - pointC.z);
                             if (dx < various_threshold && dy < various_threshold && dz < various_threshold) {
                                 cluster_ids[indexC] = now_cluster_id;
                                 queue[queue_end] = indexC;
@@ -165,7 +157,6 @@ namespace segmentation_server {
             cluster_end = 0;
         }
         clusters.shrink_to_fit();
-//        ROS_INFO("Clusters: %d, %zu", now_cluster_id, clusters.size());
     }
 
     /*******************************************************************************************************************
@@ -214,28 +205,28 @@ namespace segmentation_server {
             for (auto &cluster:segment.clusters) {
                 for (auto &index : cluster.indices) {
                     if (!is_exclude[index]) {
-                        auto *point = &cloud[index];
-                        if (point->x < min_x) {
-                            min_x = point->x;
+                        auto &point = cloud[index];
+                        if (point.x < min_x) {
+                            min_x = point.x;
                         }
-                        if (point->x > max_x) {
-                            max_x = point->x;
+                        if (point.x > max_x) {
+                            max_x = point.x;
                         }
-                        if (point->y < min_y) {
-                            min_y = point->y;
+                        if (point.y < min_y) {
+                            min_y = point.y;
                         }
-                        if (point->y > max_y) {
-                            max_y = point->y;
+                        if (point.y > max_y) {
+                            max_y = point.y;
                         }
-                        if (point->z < min_z) {
-                            min_z = point->z;
+                        if (point.z < min_z) {
+                            min_z = point.z;
                         }
-                        if (point->z > max_z) {
-                            max_z = point->z;
+                        if (point.z > max_z) {
+                            max_z = point.z;
                         }
-                        ave_x += point->x;
-                        ave_y += point->y;
-                        ave_z += point->z;
+                        ave_x += point.x;
+                        ave_y += point.y;
+                        ave_z += point.z;
                         ++count;
                     }
                 }
@@ -285,9 +276,9 @@ namespace segmentation_server {
      */
     void SemanticMapping::set_color(std::vector<Segment> &segments) {
         for (int i = 0; i < int(segments.size()); ++i) {
-            auto *segment = &segments[i];
-            auto *color = &m_colors[i];
-            segment->set_rgb(color->r, color->g, color->b);
+            auto &segment = segments[i];
+            auto &color = m_colors[i];
+            segment.set_rgb(color.r, color.g, color.b);
         }
     }
 

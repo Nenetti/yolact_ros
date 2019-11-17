@@ -2,10 +2,10 @@
 // Created by ubuntu on 2019/10/16.
 //
 
-#include <semantic_mapping/GeometricEdgeMap.h>
+#include <semantic_mapping/geometric_edge_map.h>
 #include <sensor_msgs/Image.h>
-#include <semantic_mapping/Filter.h>
-#include <semantic_mapping/SegmentationClient.h>
+#include <semantic_mapping/filter.h>
+#include <semantic_mapping/segmentation_client.h>
 #include <omp.h>
 #include <cv_bridge/cv_bridge.h>
 

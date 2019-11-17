@@ -37,7 +37,7 @@
 
 
 #include <ros/ros.h>
-#include <octomap_server/OctomapServer.h>
+#include <octomap_server/octomap_server.h>
 #include <custom_octomap/ColorOcTree.h>
 
 #define USAGE "\nUSAGE: octomap_server <map.[bt|ot]>\n" \
@@ -56,7 +56,7 @@ int main(int argc, char **argv) {
         exit(-1);
     }
 
-    OctomapServer server;
+    octomap_server server;
     ros::spinOnce();
 
     if (argc == 2) {

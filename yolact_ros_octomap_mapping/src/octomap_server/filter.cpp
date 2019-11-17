@@ -2,7 +2,7 @@
 // Created by ubuntu on 2019/10/16.
 //
 
-#include <octomap_server/Filter.h>
+#include <octomap_server/filter.h>
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/filters/passthrough.h>
 

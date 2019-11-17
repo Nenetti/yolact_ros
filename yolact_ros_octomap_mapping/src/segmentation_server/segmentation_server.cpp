@@ -11,8 +11,9 @@ namespace segmentation_server {
     using pcl::PointCloud;
     using pcl::PointXYZRGB;
 
-    // こいつがPointCloudを受け取ったら、Yolactに送る、その後、結果を元にセグメンテーションしたPointCloudをPublishかつ結果も別個でPublish
-
+    /*******************************************************************************************************************
+     * コンストラクター
+     */
     SegmentationServer::SegmentationServer(ros::NodeHandle nh) :
             m_baseFrameId(""),
             m_worldFrameId(""),
@@ -38,6 +39,8 @@ namespace segmentation_server {
 
         m_cloud_sub = m_nh.subscribe<sensor_msgs::PointCloud2>("cloud_in", 10, &SegmentationServer::call_back, this);
 
+        m_marker_client = semantic_mapping::MarkerClient();
+
         m_segmentation_client = new actionlib::SimpleActionClient<yolact_ros::SegmentationAction>("/yolact_ros/check_for_objects", true);
         m_segmentation_filter_pub = m_nh.advertise<sensor_msgs::Image>("geometric_map", 1, true);
         m_clustering_pub = m_nh.advertise<sensor_msgs::Image>("clustering_map", 1, true);
@@ -45,10 +48,22 @@ namespace segmentation_server {
         m_marker_info_pub = m_nh.advertise<yolact_ros_octomap_mapping::SegmentMarkers>("marker_info", 1, true);
     }
 
+    /*******************************************************************************************************************
+     * PointCloudのコールバック
+     * @param cloud_msg
+     */
     void SegmentationServer::call_back(const sensor_msgs::PointCloud2::ConstPtr &cloud_msg) {
-        printf("Subscribe\n");
+        //************************************************************************************************************//
+        // Transform PointCloud2
+        //************************************************************************************************************//
+        ROS_INFO("Subscribe PointCloud2 msg.");
         ros::WallTime startTime = ros::WallTime::now();
-        sensor_msgs::Image image;
+        m_width = cloud_msg->width;
+        m_height = cloud_msg->height;
+
+        //************************************************************************************************************//
+        // Transform PointCloud2
+        //************************************************************************************************************//
         sensor_msgs::PointCloud2 base_cloud;
         sensor_msgs::PointCloud2 world_cloud;
 
@@ -58,25 +73,31 @@ namespace segmentation_server {
         pcl::PointCloud<pcl::PointXYZRGB> cloud;
         pcl::fromROSMsg(world_cloud, cloud);
 
-        pcl::toROSMsg(*cloud_msg, image);
+        //************************************************************************************************************//
+        // Action
+        //************************************************************************************************************//
         yolact_ros::SegmentationGoal goal;
+        sensor_msgs::Image image;
+        pcl::toROSMsg(*cloud_msg, image);
         goal.image = image;
         m_segmentation_client->sendGoal(goal);
         m_segmentation_client->waitForResult(ros::Duration(5.0));
 
         if (m_segmentation_client->getState() == actionlib::SimpleClientGoalState::SUCCEEDED) {
-            auto *result = &m_segmentation_client->getResult().get()->segments;
-            apply_segmentation_to_cloud(cloud, *result);
+            auto &result = m_segmentation_client->getResult().get()->segments;
+            apply_segmentation_to_cloud(cloud, result);
+        } else {
+            ROS_WARN("Segmentation required failed.");
         }
         ROS_INFO("Done (%f sec)\n", (ros::WallTime::now() - startTime).toSec());
     }
 
     void SegmentationServer::apply_segmentation_to_cloud(PointCloud<PointXYZRGB> &cloud, const yolact_ros::Segments &segment_msg) {
         if (!segment_msg.segments.empty()) {
-            std::vector<semantic_mapping::Segment> segments(segment_msg.segments.size());
+            std::vector<semantic_mapping::Segment> segments;
             std::vector<semantic_mapping::Cluster> clusters;
 
-            convert_segment_data(segment_msg, segments, cloud.width);
+            convert_segment_data(segment_msg, segments);
 
             m_semantic_map.to_segmentation(cloud, segments, clusters);
 
@@ -84,29 +105,29 @@ namespace segmentation_server {
         }
     }
 
-    void SegmentationServer::convert_segment_data(const yolact_ros::Segments &segment_msg,
-                                                  std::vector<semantic_mapping::Segment> &segments, int width) {
+    void SegmentationServer::convert_segment_data(const yolact_ros::Segments &segment_msg, std::vector<semantic_mapping::Segment> &segments) {
+        segments.resize(segment_msg.segments.size());
         for (int i = 0; i < int(segment_msg.segments.size()); ++i) {
             auto &segment = segments[i];
             auto &info = segment_msg.segments[i];
             segment.segment = info;
             segment.mask.resize(info.x_masks.size());
             for (int k = 0; k < int(segment.mask.size()); ++k) {
-                segment.mask[k] = info.x_masks[k] + info.y_masks[k] * width;
+                segment.mask[k] = info.x_masks[k] + info.y_masks[k] * m_width;
             }
         }
     }
 
     void SegmentationServer::publish_all(const PointCloud<PointXYZRGB> &cloud, const std::vector<semantic_mapping::Segment> &segments,
                                          const std::vector<semantic_mapping::Cluster> &clusters) {
-        if (m_is_segmentation_filter_pub) {
-            publish_segmentation_filter_image(cloud, segments);
-        }
-        if (m_is_clustering_pub) {
-            publish_clustering_image(cloud, clusters);
-        }
         if (m_is_cloud_pub) {
             publish_segmentation_cloud(cloud, segments);
+        }
+        if (m_is_segmentation_filter_pub) {
+            publish_segmentation_filter_image(segments);
+        }
+        if (m_is_clustering_pub) {
+            publish_clustering_image(clusters);
         }
         if (m_is_marker_info_pub) {
             publish_marker_info(segments);
@@ -117,10 +138,8 @@ namespace segmentation_server {
     }
 
     /*******************************************************************************************************************
-     *
-     * @param cloud
+     * マーカー情報をPublishする
      * @param segments
-     * @param is_exclude
      */
     void SegmentationServer::publish_marker_info(const std::vector<semantic_mapping::Segment> &segments) {
         yolact_ros_octomap_mapping::SegmentMarkers markers;
@@ -146,10 +165,9 @@ namespace segmentation_server {
     }
 
     /*******************************************************************************************************************
-     *
+     * フィルターをかけたセグメンテーションの結果をPointCloudでPublish
      * @param cloud
      * @param segments
-     * @param is_exclude
      */
     void SegmentationServer::publish_segmentation_cloud(const PointCloud<PointXYZRGB> &cloud, const std::vector<semantic_mapping::Segment> &segments) {
         PointCloud<PointXYZRGB> pcl_cloud;
@@ -172,13 +190,11 @@ namespace segmentation_server {
     }
 
     /*******************************************************************************************************************
-     *
-     * @param cloud
-     * @param segments
-     * @param is_exclude
+     * クラスタリングした結果を画像でPublish
+     * @param clusters
      */
-    void SegmentationServer::publish_clustering_image(const PointCloud<PointXYZRGB> &cloud, const std::vector<semantic_mapping::Cluster> &clusters) {
-        cv::Mat image(cloud.height, cloud.width, CV_8UC3, cv::Scalar(255, 255, 255));
+    void SegmentationServer::publish_clustering_image(const std::vector<semantic_mapping::Cluster> &clusters) {
+        cv::Mat image(m_height, m_width, CV_8UC3, cv::Scalar(255, 255, 255));
         std::random_device rnd;
         std::mt19937 mt(rnd());
         std::uniform_int_distribution<> rand100(0, 255);
@@ -187,12 +203,12 @@ namespace segmentation_server {
             int g = rand100(mt);
             int b = rand100(mt);
             for (auto &index:cluster.indices) {
-                int x = int(index % cloud.width);
-                int y = int(index / cloud.width);
-                auto *src = &image.at<cv::Vec3b>(y, x);
-                (*src)[0] = r;
-                (*src)[1] = g;
-                (*src)[2] = b;
+                int x = int(index % m_width);
+                int y = int(index / m_width);
+                auto &src = image.at<cv::Vec3b>(y, x);
+                src[0] = r;
+                src[1] = g;
+                src[2] = b;
             }
         }
         sensor_msgs::ImagePtr ros_image = cv_bridge::CvImage(std_msgs::Header(), "bgr8", image).toImageMsg();
@@ -200,22 +216,20 @@ namespace segmentation_server {
     }
 
     /*******************************************************************************************************************
-     *
-     * @param cloud
+     * フィルターをかけたセグメンテーションの結果を画像でPublish
      * @param segments
-     * @param is_exclude
      */
-    void SegmentationServer::publish_segmentation_filter_image(const PointCloud<PointXYZRGB> &cloud, const std::vector<semantic_mapping::Segment> &segments) {
-        cv::Mat image(cloud.height, cloud.width, CV_8UC3, cv::Scalar(255, 255, 255));
+    void SegmentationServer::publish_segmentation_filter_image(const std::vector<semantic_mapping::Segment> &segments) {
+        cv::Mat image(m_height, m_width, CV_8UC3, cv::Scalar(255, 255, 255));
         for (auto &segment:segments) {
             for (auto &cluster:segment.clusters) {
                 for (auto &index:cluster.indices) {
-                    int x = int(index % cloud.width);
-                    int y = int(index / cloud.width);
-                    auto *src = &image.at<cv::Vec3b>(y, x);
-                    (*src)[0] = segment.b;
-                    (*src)[1] = segment.g;
-                    (*src)[2] = segment.r;
+                    int x = int(index % m_width);
+                    int y = int(index / m_width);
+                    auto &src = image.at<cv::Vec3b>(y, x);
+                    src[0] = segment.b;
+                    src[1] = segment.g;
+                    src[2] = segment.r;
                 }
             }
         }

@@ -27,7 +27,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <octomap_server/OctomapServer.h>
+#include <octomap_server/octomap_server.h>
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/filters/extract_indices.h>
 #include <pcl/kdtree/kdtree.h>
@@ -43,7 +43,7 @@
 #include <pcl/features/normal_3d.h>
 
 #include <string>
-#include <octomap_server/Filter.h>
+#include <octomap_server/filter.h>
 
 //#include <pcl/point_types.h>
 //#include <pcl/io/pcd_io.h>
@@ -354,7 +354,7 @@ namespace octomap_server {
 
         try {
             //************************************************************************************************************//
-            // GeometricEdgeMap
+            // geometric_edge_map
             //************************************************************************************************************//
             if (m_filterGroundPlane) {
                 sensor_msgs::PointCloud2 base_cloud;
@@ -364,8 +364,8 @@ namespace octomap_server {
                 pcl::fromROSMsg(world_cloud, cloud);
                 if (!segments.empty()) {
                     m_geometric_edge_map.toSegmentation(cloud, segments, ground_cloud, ceiling_cloud, nonground_nonseg_cloud, nonground_seg_cloud);
-                    ROS_INFO("GeometricEdgeMap done %f sec)", (ros::WallTime::now() - startTime).toSec());
-                    ROS_INFO("GeometricEdgeMap done (%zu (ground), %zu (ground), %zu (ground))",
+                    ROS_INFO("geometric_edge_map done %f sec)", (ros::WallTime::now() - startTime).toSec());
+                    ROS_INFO("geometric_edge_map done (%zu (ground), %zu (ground), %zu (ground))",
                              ground_cloud.size(), nonground_nonseg_cloud.size(), nonground_seg_cloud.size());
                 } else {
                     Filter::filterGroundPlane(cloud, ground_cloud, nonground_nonseg_cloud, m_groundFilterPlaneDistance);
@@ -406,7 +406,7 @@ namespace octomap_server {
 
 //            insertScan(sensorToWorldTf.getOrigin(), ground_cloud, ceiling_cloud, nonground_nonseg_cloud, nonground_seg_cloud, segments);
 //
-            ROS_INFO("Pointcloud insertion in OctomapServer done %f sec)", (ros::WallTime::now() - startTime).toSec());
+            ROS_INFO("Pointcloud insertion in octomap_server done %f sec)", (ros::WallTime::now() - startTime).toSec());
 //            publishAll(cloud_msg->header.stamp);
         } catch (exception e) {
             ROS_ERROR("Failed");
@@ -526,7 +526,7 @@ namespace octomap_server {
                 updateMaxKey(oc_tree_key, m_updateBBXMax);
             }
             OcTreeNode *node = m_octree->updateNodeValue(oc_tree_key, true);
-            auto *segment = &segments[point.label].segment;
+            auto *segment = &segments[point.label].Segment;
             node->update_label_probability(segment->Class, segment->probability);
         }
         ROS_INFO("Segmentation Data done %f sec)", (ros::WallTime::now() - startTime).toSec());
@@ -798,7 +798,7 @@ namespace octomap_server {
 
 
         double total_elapsed = (ros::WallTime::now() - startTime).toSec();
-        ROS_INFO("Map publishing in OctomapServer took %f sec", total_elapsed);
+        ROS_INFO("Map publishing in octomap_server took %f sec", total_elapsed);
 
     }
 
@@ -1190,7 +1190,7 @@ namespace octomap_server {
         return neighborFound;
     }
 
-    void OctomapServer::reconfigureCallback(octomap_server::OctomapServerConfig &config, uint32_t level) {
+    void OctomapServer::reconfigureCallback(OctomapServer::OctomapServerConfig &config, uint32_t level) {
         if (m_maxTreeDepth != unsigned(config.max_depth)) {
             m_maxTreeDepth = unsigned(config.max_depth);
         } else {

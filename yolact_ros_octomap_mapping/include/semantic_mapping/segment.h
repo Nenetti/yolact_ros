@@ -7,7 +7,7 @@
 
 #include <vector>
 #include <yolact_ros/Segment.h>
-#include <semantic_mapping/Cluster.h>
+#include <semantic_mapping/cluster.h>
 
 namespace semantic_mapping {
 

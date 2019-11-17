@@ -2,7 +2,7 @@
 // Created by ubuntu on 2019/10/16.
 //
 
-#include <semantic_mapping/Filter.h>
+#include <semantic_mapping/filter.h>
 
 namespace semantic_mapping {
 

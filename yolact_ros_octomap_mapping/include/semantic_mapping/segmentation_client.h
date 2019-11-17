@@ -9,7 +9,7 @@
 #include <yolact_ros/SegmentationResult.h>
 #include <actionlib/client/simple_action_client.h>
 #include <yolact_ros/SegmentationAction.h>
-#include <semantic_mapping/Segment.h>
+#include <semantic_mapping/segment.h>
 
 namespace semantic_mapping {
 

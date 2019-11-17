@@ -2,7 +2,7 @@
 // Created by ubuntu on 2019/10/19.
 //
 
-#include <semantic_mapping/SegmentationClient.h>
+#include <semantic_mapping/segmentation_client.h>
 #include <sensor_msgs/Image.h>
 #include <pcl_conversions/pcl_conversions.h>
 #include <yolact_ros/SegmentationGoal.h>
@@ -43,7 +43,7 @@ namespace semantic_mapping {
             auto *result = &m_segmentationClient->getResult().get()->segments;
             segments.resize(result->segments.size());
             for (int i = 0; i < int(segments.size()); ++i) {
-                segments[i].segment = result->segments[i];
+                segments[i].Segment = result->segments[i];
             }
             sort_segments(segments);
             publish_image(image, *result);
@@ -117,10 +117,10 @@ namespace semantic_mapping {
         int index, x, y;
         for (auto &segment:segments) {
             auto *mask = &segment.mask;
-            mask->resize(segment.segment.x_masks.size());
-            for (int k = 0; k < int(segment.segment.x_masks.size()); ++k) {
-                x = segment.segment.x_masks[k];
-                y = segment.segment.y_masks[k];
+            mask->resize(segment.Segment.x_masks.size());
+            for (int k = 0; k < int(segment.Segment.x_masks.size()); ++k) {
+                x = segment.Segment.x_masks[k];
+                y = segment.Segment.y_masks[k];
                 index = x + y * 640;
                 mask_map[index] = i;
                 (*mask)[k] = index;

@@ -18,6 +18,7 @@
 #include <cv_bridge/cv_bridge.h>
 
 #include <segmentation_server/semantic_mapping.h>
+#include <semantic_mapping/marker_client.h>
 #include <tf/transform_listener.h>
 
 namespace segmentation_server {
@@ -34,25 +35,39 @@ namespace segmentation_server {
 
         protected:
             ros::NodeHandle m_nh;
-            ros::Publisher m_cloud_pub, m_segmentation_filter_pub, m_clustering_pub, m_marker_info_pub;
+            ros::Publisher m_cloud_pub;
+            ros::Publisher m_segmentation_filter_pub;
+            ros::Publisher m_clustering_pub;
+            ros::Publisher m_marker_info_pub;
             ros::Subscriber m_cloud_sub;
             actionlib::SimpleActionClient<yolact_ros::SegmentationAction> *m_segmentation_client;
-
-            std::string m_baseFrameId, m_worldFrameId;
-            double m_ground_distance, m_ceiling_distance;
-            bool m_is_cloud_pub, m_is_segmentation_filter_pub, m_is_clustering_pub, m_is_marker_pub, m_is_marker_info_pub;
             tf::TransformListener m_tfListener;
+
+            bool m_is_cloud_pub;
+            bool m_is_segmentation_filter_pub;
+            bool m_is_clustering_pub;
+            bool m_is_marker_pub;
+            bool m_is_marker_info_pub;
+
+            int m_width;
+            int m_height;
+
+            double m_ground_distance;
+            double m_ceiling_distance;
+
+            std::string m_baseFrameId;
+            std::string m_worldFrameId;
 
             segmentation_server::SemanticMapping m_semantic_map;
             semantic_mapping::MarkerClient m_marker_client;
 
-            void publish_segmentation_filter_image(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, const std::vector<semantic_mapping::Segment> &segments);
+            void publish_segmentation_filter_image(const std::vector<semantic_mapping::Segment> &segments);
 
-            void publish_clustering_image(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, const std::vector<semantic_mapping::Cluster> &clusters);
+            void publish_clustering_image(const std::vector<semantic_mapping::Cluster> &clusters);
 
             void publish_segmentation_cloud(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, const std::vector<semantic_mapping::Segment> &segments);
 
-            static void convert_segment_data(const yolact_ros::Segments &segment_msg, std::vector<semantic_mapping::Segment> &segments, int width);
+            void convert_segment_data(const yolact_ros::Segments &segment_msg, std::vector<semantic_mapping::Segment> &segments);
 
             void publish_all(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, const std::vector<semantic_mapping::Segment> &segments,
                              const std::vector<semantic_mapping::Cluster> &clusters);

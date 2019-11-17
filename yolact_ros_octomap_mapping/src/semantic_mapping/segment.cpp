@@ -2,7 +2,7 @@
 // Created by ubuntu on 2019/10/31.
 //
 
-#include <semantic_mapping/Segment.h>
+#include <semantic_mapping/segment.h>
 
 namespace semantic_mapping {
 

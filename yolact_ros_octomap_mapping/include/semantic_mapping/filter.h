@@ -12,8 +12,8 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <yolact_ros/SegmentationResult.h>
-#include <semantic_mapping/Cluster.h>
-#include <semantic_mapping/Segment.h>
+#include <semantic_mapping/cluster.h>
+#include <semantic_mapping/segment.h>
 #include <geometry_msgs/Point.h>
 //#include <omp.h>
 

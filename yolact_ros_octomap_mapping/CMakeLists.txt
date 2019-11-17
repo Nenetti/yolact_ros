@@ -27,14 +27,14 @@ SET(SRCS
         src/custom_octomap/OcTreeIterator.cpp
         src/custom_octomap/OcTreeKey.cpp
         src/custom_octomap/OcTreeNode.cpp
-        src/octomap_server/OctomapServer.cpp
-        src/octomap_server/Filter.cpp
-        src/semantic_mapping/GeometricEdgeMap.cpp
-        src/semantic_mapping/Filter.cpp
-        src/semantic_mapping/SegmentationClient.cpp
-        src/semantic_mapping/Cluster.cpp
-        src/semantic_mapping/Segment.cpp
-        src/semantic_mapping/MarkerClient.cpp
+        src/octomap_server/octomap_server.cpp
+        src/octomap_server/filter.cpp
+        src/semantic_mapping/geometric_edge_map.cpp
+        src/semantic_mapping/filter.cpp
+        src/semantic_mapping/segmentation_client.cpp
+        src/semantic_mapping/cluster.cpp
+        src/semantic_mapping/segment.cpp
+        src/semantic_mapping/marker_client.cpp
         src/segmentation_server/segmentation_server.cpp
         src/segmentation_server/semantic_mapping.cpp
         )
@@ -85,7 +85,7 @@ find_package(OpenMP REQUIRED)
 SET(CMAKE_C_FLAGS ${OpenMP_C_FLAGS})
 SET(CMAKE_CXX_FLAGS ${OpenMP_CXX_FLAGS})
 
-#add_library(${PROJECT_NAME} src/octomap_server/OctomapServer.cpp)
+#add_library(${PROJECT_NAME} src/octomap_server/octomap_server.cpp)
 add_library(${PROJECT_NAME} ${SRCS})
 add_definitions(-std=c++11)
 

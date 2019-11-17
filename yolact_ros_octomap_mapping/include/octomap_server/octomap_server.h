@@ -68,11 +68,11 @@
 #include <custom_octomap/ColorOcTree.h>
 #include <actionlib/client/simple_action_client.h>
 #include <yolact_ros/SegmentationAction.h>
-#include <semantic_mapping/GeometricEdgeMap.h>
-#include <semantic_mapping/SegmentationClient.h>
+#include <semantic_mapping/geometric_edge_map.h>
+#include <semantic_mapping/segmentation_client.h>
 #include <std_msgs/ColorRGBA.h>
 
-//#define COLOR_OCTOMAP_SERVER // turned off here, turned on identical ColorOctomapServer.h - easier maintenance, only maintain OctomapServer and then copy and paste to ColorOctomapServer and change define. There are prettier ways to do this, but this works for now
+//#define COLOR_OCTOMAP_SERVER // turned off here, turned on identical ColorOctomapServer.h - easier maintenance, only maintain octomap_server and then copy and paste to ColorOctomapServer and change define. There are prettier ways to do this, but this works for now
 
 
 namespace octomap_server {
@@ -137,7 +137,7 @@ namespace octomap_server {
                         && key[1] <= m_updateBBXMax[1]);
             }
 
-            void reconfigureCallback(octomap_server::OctomapServerConfig &config, uint32_t level);
+            void reconfigureCallback(OctomapServer::OctomapServerConfig &config, uint32_t level);
 
             void publishBinaryOctoMap(const ros::Time &rostime = ros::Time::now()) const;
 
@@ -192,16 +192,16 @@ namespace octomap_server {
             void
             searchPointNeighbours(pcl::PointCloud<pcl::PointXYZRGBNormal> &cloud_normals, std::vector<std::vector<int>> &neighbours_indices, double radius);
 //
-//            void searchClusterNeighbours(std::vector<custom_octomap::Cluster> &clusters, std::vector<std::tr1::unordered_set<int>> &clusters_neighbours_indices,
+//            void searchClusterNeighbours(std::vector<custom_octomap::cluster> &clusters, std::vector<std::tr1::unordered_set<int>> &clusters_neighbours_indices,
 //                                         double threshold);
 //
 //
-//            void searchClusterNeighboursRecurs(custom_octomap::Cluster &root_cluster, custom_octomap::Cluster &parent_cluster,
-//                                               std::vector<custom_octomap::Cluster> &clusters,
+//            void searchClusterNeighboursRecurs(custom_octomap::cluster &root_cluster, custom_octomap::cluster &parent_cluster,
+//                                               std::vector<custom_octomap::cluster> &clusters,
 //                                               std::vector<std::tr1::unordered_set<int>> &clusters_neighbours_indices, double threshold,
 //                                               std::tr1::unordered_set<int> &set);
 //
-//            void clusteringNormal(std::vector<custom_octomap::Cluster> &clusters, std::vector<std::tr1::unordered_set<int>> &clusters_neighbours_indices,
+//            void clusteringNormal(std::vector<custom_octomap::cluster> &clusters, std::vector<std::tr1::unordered_set<int>> &clusters_neighbours_indices,
 //                                  std::vector<std::vector<int>> &neighbours_indices, pcl::PointCloud<pcl::PointXYZRGBNormal> &cloud_normals,
 //                                  double threshold);
 
