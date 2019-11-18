@@ -35,8 +35,8 @@ SET(SRCS
         src/semantic_mapping/cluster.cpp
         src/semantic_mapping/segment.cpp
         src/semantic_mapping/marker_client.cpp
+        src/semantic_mapping/semantic_mapping.cpp
         src/segmentation_server/segmentation_server.cpp
-        src/segmentation_server/semantic_mapping.cpp
         )
 
 find_package(catkin REQUIRED COMPONENTS ${PACKAGE_DEPENDENCIES} message_generation)

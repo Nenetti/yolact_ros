@@ -6,7 +6,7 @@
 
 namespace semantic_mapping {
 
-    Segment::Segment() {
+    Segment::Segment() : is_available(true) {
 
     }
 

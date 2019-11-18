@@ -137,7 +137,7 @@ namespace octomap_server {
                         && key[1] <= m_updateBBXMax[1]);
             }
 
-            void reconfigureCallback(OctomapServer::OctomapServerConfig &config, uint32_t level);
+            void reconfigureCallback(OctomapServerConfig &config, uint32_t level);
 
             void publishBinaryOctoMap(const ros::Time &rostime = ros::Time::now()) const;
 

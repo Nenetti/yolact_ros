@@ -17,9 +17,10 @@
 #include <pcl_conversions/pcl_conversions.h>
 #include <cv_bridge/cv_bridge.h>
 
-#include <segmentation_server/semantic_mapping.h>
+#include <semantic_mapping/semantic_mapping.h>
 #include <semantic_mapping/marker_client.h>
 #include <tf/transform_listener.h>
+#include <pcl_ros/transforms.h>
 
 namespace segmentation_server {
 
@@ -58,7 +59,7 @@ namespace segmentation_server {
             std::string m_baseFrameId;
             std::string m_worldFrameId;
 
-            segmentation_server::SemanticMapping m_semantic_map;
+            semantic_mapping::SemanticMapping m_semantic_map;
             semantic_mapping::MarkerClient m_marker_client;
 
             void publish_segmentation_filter_image(const std::vector<semantic_mapping::Segment> &segments);

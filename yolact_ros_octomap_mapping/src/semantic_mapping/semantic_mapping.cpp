@@ -2,13 +2,9 @@
 // Created by ubuntu on 2019/10/16.
 //
 
-#include <segmentation_server/semantic_mapping.h>
-#include <sensor_msgs/Image.h>
-#include <semantic_mapping/filter.h>
-#include <omp.h>
-#include <cv_bridge/cv_bridge.h>
+#include <semantic_mapping/semantic_mapping.h>
 
-namespace segmentation_server {
+namespace semantic_mapping {
 
 
     using pcl::PointCloud;
@@ -179,6 +175,10 @@ namespace segmentation_server {
                 }
             }
             index = std::max_element(occupied.begin(), occupied.end()) - occupied.begin();
+            if (occupied[index] == 0) {
+                segment.is_available = false;
+                continue;
+            }
             segment.clusters.emplace_back(clusters[index]);
             segment.cluster_occupied.emplace_back(occupied[index]);
             for (int i = 0; i < index; ++i) {
@@ -199,6 +199,9 @@ namespace segmentation_server {
      */
     void SemanticMapping::calc_segment_range(const PointCloud<PointXYZRGB> &cloud, const std::vector<bool> &is_exclude, std::vector<Segment> &segments) {
         for (auto &segment : segments) {
+            if (!segment.is_available) {
+                continue;
+            }
             double min_x = DBL_MAX, max_x = -DBL_MAX, min_y = DBL_MAX, max_y = -DBL_MAX, min_z = DBL_MAX, max_z = -DBL_MAX;
             double ave_x = 0, ave_y = 0, ave_z = 0;
             int count = 0;

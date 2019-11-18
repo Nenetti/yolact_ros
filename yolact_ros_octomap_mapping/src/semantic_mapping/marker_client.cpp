@@ -15,7 +15,8 @@ namespace semantic_mapping {
             m_bounding_box_ns("bounding_box"),
             m_name_ns("name"),
             m_bounding_box_id_base(1000),
-            m_name_id_base(2000) {
+            m_name_id_base(2000),
+            m_before_marker_size(0) {
         nh.param("marker/frame", m_frame, m_frame);
         nh.param("marker/bounding_box_ns", m_bounding_box_ns, m_bounding_box_ns);
         nh.param("marker/name_ns", m_name_ns, m_name_ns);
@@ -35,7 +36,7 @@ namespace semantic_mapping {
         std_msgs::Header header;
         publish_line_list(cloud, segments);
         publish_segment_name(cloud, segments);
-        m_before_marker_size = int(segments.size());
+        m_before_marker_size = m_marker_size;
     }
 
     /*******************************************************************************************************************
@@ -48,9 +49,10 @@ namespace semantic_mapping {
         // それぞれのマーカーをDELETEで初期化
         //************************************************************************************************************//
         visualization_msgs::MarkerArray marker_array;
-        marker_array.markers.resize(std::max(m_marker_size, m_before_marker_size));
+        int max_size = std::max(m_marker_size, m_before_marker_size);
+        marker_array.markers.resize(max_size);
         ros::Time time_stamp = ros::Time::now();
-        for (int i = 0; i < m_before_marker_size; ++i) {
+        for (int i = 0; i < max_size; ++i) {
             auto &marker = marker_array.markers[i];
             marker.header.frame_id = m_frame;
             marker.header.stamp = time_stamp;
@@ -96,9 +98,10 @@ namespace semantic_mapping {
         // それぞれのマーカーをDELETEで初期化
         //************************************************************************************************************//
         visualization_msgs::MarkerArray marker_array;
-        marker_array.markers.resize(std::max(m_marker_size, m_before_marker_size));
+        int max_size = std::max(m_marker_size, m_before_marker_size);
+        marker_array.markers.resize(max_size);
         ros::Time time_stamp = ros::Time::now();
-        for (int i = 0; i < m_before_marker_size; ++i) {
+        for (int i = 0; i < max_size; ++i) {
             auto &marker = marker_array.markers[i];
             marker.header.frame_id = m_frame;
             marker.header.stamp = time_stamp;

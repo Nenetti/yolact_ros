@@ -10,8 +10,8 @@
         <param name="frame_id" type="string" value="/map"/>
         <param name="base_frame_id" value="/base_footprint"/>
         <param name="publish/segmentation_cloud" value="true"/>
-        <param name="publish/segmentation_filter_image" value="false"/>
-        <param name="publish/clustering_edge_image" value="false"/>
+        <param name="publish/segmentation_filter_image" value="true"/>
+        <param name="publish/clustering_edge_image" value="true"/>
         <param name="publish/segmentation_marker" value="true"/>
         <param name="publish/segmentation_marker_info" value="true"/>
         <param name="filter/ground_distance" value="0.07"/>

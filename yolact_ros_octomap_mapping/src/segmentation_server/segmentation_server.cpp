@@ -3,7 +3,6 @@
 //
 
 #include <segmentation_server/segmenatation_server.h>
-#include <pcl_ros/transforms.h>
 
 
 namespace segmentation_server {
@@ -82,7 +81,6 @@ namespace segmentation_server {
         goal.image = image;
         m_segmentation_client->sendGoal(goal);
         m_segmentation_client->waitForResult(ros::Duration(5.0));
-
         if (m_segmentation_client->getState() == actionlib::SimpleClientGoalState::SUCCEEDED) {
             auto &result = m_segmentation_client->getResult().get()->segments;
             apply_segmentation_to_cloud(cloud, result);

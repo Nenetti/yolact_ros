@@ -2,8 +2,8 @@
 // Created by ubuntu on 2019/10/16.
 //
 
-#ifndef SEGMENTATION_SERVER_SEMANTICMAPPING_H
-#define SEGMENTATION_SERVER_SEMANTICMAPPING_H
+#ifndef SEMANTIC_MAPPING_SEMANTICMAPPING_H
+#define SEMANTIC_MAPPING_SEMANTICMAPPING_H
 
 #include <pcl/point_types.h>
 #include <pcl/point_cloud.h>
@@ -16,8 +16,10 @@
 #include <semantic_mapping/segment.h>
 #include <geometry_msgs/Point.h>
 #include <semantic_mapping/marker_client.h>
+#include <sensor_msgs/Image.h>
+#include <semantic_mapping/filter.h>
 
-namespace segmentation_server {
+namespace semantic_mapping {
 
     class SemanticMapping {
 
@@ -30,7 +32,6 @@ namespace segmentation_server {
             void to_segmentation(pcl::PointCloud<pcl::PointXYZRGB> &cloud, std::vector<semantic_mapping::Segment> &segments,
                                  std::vector<semantic_mapping::Cluster> &clusters);
 
-
         protected:
 
             semantic_mapping::MarkerClient m_marker_client;
@@ -40,36 +41,22 @@ namespace segmentation_server {
             double m_ground_filter;
             double m_ceiling_filter;
 
-
             static void calc_segment_range(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, const std::vector<bool> &is_exclude,
-                                           std::vector<semantic_mapping::Segment>
-                                           &segments);
+                                           std::vector<semantic_mapping::Segment> &segments);
 
             void init_color(int size);
 
             static void clustering_from_edge(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, const std::vector<bool> &edge_map, std::vector<int> &cluster_ids,
-                                             std::vector<semantic_mapping::Cluster> &clusters,
-                                             double threshold);
-
-            void publish_geometric_image(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, const std::vector<semantic_mapping::Segment> &segments,
-                                         const std::vector<bool> &is_exclude);
+                                             std::vector<semantic_mapping::Cluster> &clusters, double threshold);
 
             static void detect_segmentation_cluster(const std::vector<int> &cluster_ids, std::vector<semantic_mapping::Cluster> &clusters,
-                                             std::vector<semantic_mapping::Segment> &segments);
+                                                    std::vector<semantic_mapping::Segment> &segments);
 
             void set_color(std::vector<semantic_mapping::Segment> &segments);
 
-            void set_result(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, const std::vector<bool> &is_ground, const std::vector<bool> &is_ceiling,
-                            const std::vector<bool> &is_infinite,
-                            const std::vector<int8_t> &segment_map, const std::vector<semantic_mapping::Segment> &segments, int ground_point_size,
-                            int ceiling_point_size,
-                            pcl::PointCloud<pcl::PointXYZRGB> &ground, pcl::PointCloud<pcl::PointXYZRGB> &ceiling,
-                            pcl::PointCloud<pcl::PointXYZRGB> &nonground_nonseg,
-                            pcl::PointCloud<pcl::PointXYZRGBL> &nonground_seg);
-
-            void to_mask_map(std::vector<semantic_mapping::Segment> &segments, std::vector<int8_t> &mask_map);
+            static void to_mask_map(std::vector<semantic_mapping::Segment> &segments, std::vector<int8_t> &mask_map);
     };
 
 }
 
-#endif //SEMANTIC_MAPPING_GEOMETRICEDGEMAP_H
+#endif //SEMANTIC_MAPPING_SEMANTICMAPPING_H

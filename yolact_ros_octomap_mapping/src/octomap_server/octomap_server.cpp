@@ -526,7 +526,7 @@ namespace octomap_server {
                 updateMaxKey(oc_tree_key, m_updateBBXMax);
             }
             OcTreeNode *node = m_octree->updateNodeValue(oc_tree_key, true);
-            auto *segment = &segments[point.label].Segment;
+            auto *segment = &segments[point.label].segment;
             node->update_label_probability(segment->Class, segment->probability);
         }
         ROS_INFO("Segmentation Data done %f sec)", (ros::WallTime::now() - startTime).toSec());
@@ -1190,7 +1190,7 @@ namespace octomap_server {
         return neighborFound;
     }
 
-    void OctomapServer::reconfigureCallback(OctomapServer::OctomapServerConfig &config, uint32_t level) {
+    void OctomapServer::reconfigureCallback(OctomapServerConfig &config, uint32_t level) {
         if (m_maxTreeDepth != unsigned(config.max_depth)) {
             m_maxTreeDepth = unsigned(config.max_depth);
         } else {
