@@ -12,7 +12,7 @@ import rospy
 import torch
 import torch.backends.cudnn as cudnn
 from sensor_msgs.msg import Image
-from yolact_ros.msg import Segment, Segments, SegmentationGoal, SegmentationResult, SegmentationAction
+from yolact_ros_msgs.msg import Segment, Segments, CheckForObjectsAction, CheckForObjectsGoal, CheckForObjectsResult
 
 from modules.data import cfg, set_cfg, COLORS
 from modules.layers.output_utils import postprocess
@@ -41,7 +41,7 @@ class YolactObjectDetector:
         self.top_k = rospy.get_param("~top_k", default=5)
 
         self.load_model()
-        self.server = actionlib.SimpleActionServer("yolact_ros/check_for_objects", SegmentationAction,
+        self.server = actionlib.SimpleActionServer("yolact_ros/check_for_objects", CheckForObjectsAction,
                                                    self.action_call_back, auto_start=False)
         self.subscriber = rospy.Subscriber("yolact_ros/image", Image, self.call_back, queue_size=1)
         self.image_pub = rospy.Publisher("yolact_ros/detection_image", Image, queue_size=1)
@@ -58,7 +58,7 @@ class YolactObjectDetector:
         msg = self.eval_image(image)
         if not self.server.is_preempt_requested():
             if msg is not None:
-                result = SegmentationResult()
+                result = CheckForObjectsResult()
                 result.segments = msg
                 result.id = goal.id
                 self.server.set_succeeded(result)

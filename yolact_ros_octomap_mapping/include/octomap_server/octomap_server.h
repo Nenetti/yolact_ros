@@ -67,10 +67,9 @@
 
 #include <custom_octomap/ColorOcTree.h>
 #include <actionlib/client/simple_action_client.h>
-#include <yolact_ros/SegmentationAction.h>
-#include <semantic_mapping/geometric_edge_map.h>
-#include <semantic_mapping/segmentation_client.h>
 #include <std_msgs/ColorRGBA.h>
+#include <semantic_segmentation/segmentation_client.h>
+#include <semantic_segmentation/modules/segment.h>
 
 //#define COLOR_OCTOMAP_SERVER // turned off here, turned on identical ColorOctomapServer.h - easier maintenance, only maintain octomap_server and then copy and paste to ColorOctomapServer and change define. There are prettier ways to do this, but this works for now
 
@@ -154,8 +153,6 @@ namespace octomap_server {
             * @param ground scan endpoints on the ground plane (only clear space)
             * @param nonground all other endpoints (clear up to occupied endpoint)
             */
-            void insertScan(const tf::Point &sensorOriginTf, const PointCloud<PointXYZRGB> &ground, const PointCloud<PointXYZRGB> &nonground_nonseg,
-                            const PointCloud<PointXYZRGBL> &nonground_seg, const yolact_ros::Segments &segments);
 
             /// label the input cloud "pc" into ground and nonground. Should be in the robot's fixed frame (not world!)
             void filterPlane(const PointCloud<PointXYZRGB> &pc, PointCloud<PointXYZRGB> &plane, PointCloud<PointXYZRGB> &nonplane) const;
@@ -320,14 +317,14 @@ namespace octomap_server {
             bool m_filterSpeckles;
 
             bool m_filterGroundPlane;
-            double m_groundFilterDistance;
+            double m_ground_filter_distance;
             double m_groundFilterAngle;
             double m_groundFilterPlaneDistance;
+            double m_ceiling_filter_distance;
 
             bool m_compressMap;
 
             bool m_initConfig;
-            custom_octomap::KeySet update_occupied_cells;
 
             // downprojected 2D map:
             bool m_incrementalUpdate;
@@ -353,14 +350,24 @@ namespace octomap_server {
             ros::WallTime beforeTime;
             double m_frameRate;
 
-            semantic_mapping::SegmentationClient m_semantic_client;
-            semantic_mapping::GeometricEdgeMap m_geometric_edge_map;
+            int m_number_of_objects = 0;
+
+            semantic_segmentation::SemanticCloudClient m_semantic_segmentation_client;
 
             PointCloud<PointXYZRGBL> m_all_cloud;
 
-            void insertScan(const tf::Point &sensorOriginTf, const PointCloud<PointXYZRGB> &ground, const PointCloud<PointXYZRGB> &ceiling,
-                            const PointCloud<PointXYZRGB> &nonground_nonseg, const PointCloud<PointXYZRGBL> &nonground_seg,
-                            const std::vector<semantic_mapping::Segment> &segments);
+//            void insertScan(const tf::Point &sensorOriginTf, const PointCloud<PointXYZRGB> &ground, const PointCloud<PointXYZRGB> &ceiling,
+//                            const PointCloud<PointXYZRGB> &nonground_nonseg, const PointCloud<PointXYZRGBL> &nonground_seg,
+//                            const std::vector<semantic_mapping::Segment> &segments);
+
+            void set_segment_id(PointCloud<PointXYZRGBL> &cloud, const std::vector<semantic_segmentation::SemanticObject> &segments);
+
+            void cloud_classification(const PointCloud<PointXYZRGB> &cloud, PointCloud<PointXYZRGB> &excluded_cloud,
+                                      PointCloud<PointXYZRGB> &uncategorized_cloud,
+                                      std::vector<semantic_segmentation::SemanticObject> &segments);
+
+            void insertScan(const tf::Point &sensorOriginTf, const PointCloud<PointXYZRGB> &excluded_cloud, const PointCloud<PointXYZRGB> &uncategorized_cloud,
+                            const std::vector<semantic_segmentation::SemanticObject> &segments);
     };
 }
 

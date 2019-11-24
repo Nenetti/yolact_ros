@@ -375,6 +375,20 @@ namespace custom_octomap {
         return node;
     }
 
+    OcTreeNode *OccupancyOcTreeBase::get_node(const OcTreeKey &key) {
+        int pos = 0;
+        OcTreeNode *node = this->root;
+        for (int i = this->tree_depth - 1; i >= 0; i--) {
+            pos = OcTreeKey::computeChildIndex(key, i);
+            if (this->nodeChildExists(node, pos)) {
+                node = node->getChild(pos);
+            } else {
+                node = this->createNodeChild(node, pos);
+            }
+        }
+        return node;
+    }
+
     OcTreeNode *OccupancyOcTreeBase::clustering(KeySet &set) {
 //        int pos = 0;
 //        OcTreeNode *node = this->root;

@@ -43,7 +43,7 @@
 #include <pcl/features/normal_3d.h>
 
 #include <string>
-#include <octomap_server/filter.h>
+#include <octomap_server/modules/filter.h>
 
 //#include <pcl/point_types.h>
 //#include <pcl/io/pcd_io.h>
@@ -65,6 +65,7 @@
 #include <sensor_msgs/Image.h>
 #include <pcl/registration/icp.h>
 #include <visualization_msgs/MarkerArray.h>
+#include <semantic_segmentation/modules/segment.h>
 
 using namespace pcl;
 using namespace std;
@@ -123,7 +124,8 @@ namespace octomap_server {
             m_occupancyMaxZ(std::numeric_limits<double>::max()),
             m_minSizeX(0.0), m_minSizeY(0.0),
             m_filterSpeckles(false), m_filterGroundPlane(false),
-            m_groundFilterDistance(0.04), m_groundFilterAngle(0.15), m_groundFilterPlaneDistance(0.07),
+            m_ground_filter_distance(0.04), m_groundFilterAngle(0.15), m_groundFilterPlaneDistance(0.07),
+            m_ceiling_filter_distance(2.0),
             m_downSampling(true),
             m_downSamplingSize(0.01),
             m_normal_color(false),
@@ -155,7 +157,7 @@ namespace octomap_server {
         private_nh.param("filter_speckles", m_filterSpeckles, m_filterSpeckles);
         private_nh.param("filter_ground", m_filterGroundPlane, m_filterGroundPlane);
         // distance of points from plane for RANSAC
-        private_nh.param("ground_filter/distance", m_groundFilterDistance, m_groundFilterDistance);
+        private_nh.param("ground_filter/distance", m_ground_filter_distance, m_ground_filter_distance);
         // angular derivation of found plane:
         private_nh.param("ground_filter/angle", m_groundFilterAngle, m_groundFilterAngle);
         // distance of found plane from z=0 to be detected as ground (e.g. to exclude tables)
@@ -238,8 +240,6 @@ namespace octomap_server {
         m_colorFree.g = g;
         m_colorFree.b = b;
         m_colorFree.a = a;
-
-        m_geometric_edge_map.set_filter(m_groundFilterPlaneDistance, m_pointcloudMaxZ);
 
         std::random_device rnd;
         std::mt19937 mt(rnd());
@@ -337,87 +337,80 @@ namespace octomap_server {
         //************************************************************************************************************//
         // Segmentation
         //************************************************************************************************************//
-        std::vector<semantic_mapping::Segment> segments;
-        bool is_succeed = m_semantic_client.send_segmentation_request(cloud_msg, segments);
+        std::vector<semantic_segmentation::SemanticObject> segments;
+        bool is_succeed = m_semantic_segmentation_client.send_segmentation_request(cloud_msg, segments);
         if (is_succeed) {
             ROS_INFO("Segmentation Succeed done %f sec)", (ros::WallTime::now() - startTime).toSec());
         } else {
             ROS_INFO("Segmentation Failed");
-//            return;
         }
 
+        //************************************************************************************************************//
+        // PointCloud
+        //************************************************************************************************************//
         PointCloud<PointXYZRGB> cloud;
-        PointCloud<PointXYZRGB> ground_cloud; // segmented ground plane
-        PointCloud<PointXYZRGB> ceiling_cloud; // segmented ground plane
-        PointCloud<PointXYZRGB> nonground_nonseg_cloud; // everything else
-        PointCloud<PointXYZRGBL> nonground_seg_cloud; // everything else
+        PointCloud<PointXYZRGB> excluded_cloud;
+        PointCloud<PointXYZRGB> uncategorized_cloud;
+        sensor_msgs::PointCloud2 base_cloud;
+        sensor_msgs::PointCloud2 world_cloud;
+        pcl_ros::transformPointCloud(m_baseFrameId, *cloud_msg, base_cloud, m_tfListener);
+        pcl_ros::transformPointCloud("/odom", base_cloud, world_cloud, m_tfListener);
+        pcl::fromROSMsg(world_cloud, cloud);
 
-        try {
-            //************************************************************************************************************//
-            // geometric_edge_map
-            //************************************************************************************************************//
-            if (m_filterGroundPlane) {
-                sensor_msgs::PointCloud2 base_cloud;
-                sensor_msgs::PointCloud2 world_cloud;
-                pcl_ros::transformPointCloud(m_baseFrameId, *cloud_msg, base_cloud, m_tfListener);
-                pcl_ros::transformPointCloud("/odom", base_cloud, world_cloud, m_tfListener);
-                pcl::fromROSMsg(world_cloud, cloud);
-                if (!segments.empty()) {
-                    m_geometric_edge_map.toSegmentation(cloud, segments, ground_cloud, ceiling_cloud, nonground_nonseg_cloud, nonground_seg_cloud);
-                    ROS_INFO("geometric_edge_map done %f sec)", (ros::WallTime::now() - startTime).toSec());
-                    ROS_INFO("geometric_edge_map done (%zu (ground), %zu (ground), %zu (ground))",
-                             ground_cloud.size(), nonground_nonseg_cloud.size(), nonground_seg_cloud.size());
-                } else {
-                    Filter::filterGroundPlane(cloud, ground_cloud, nonground_nonseg_cloud, m_groundFilterPlaneDistance);
-                }
-            }
+        cloud_classification(cloud, excluded_cloud, uncategorized_cloud, segments);
 
-            if (m_downSampling) {
-//            size_t ground_size = ground_cloud.size();
-//            size_t nonseg_size = nonground_nonseg_cloud.size();
-//            size_t seg_size = nonground_seg_cloud.size();
-                Filter::down_sampling(ground_cloud, ground_cloud, m_downSamplingSize);
-                Filter::down_sampling(ceiling_cloud, ceiling_cloud, m_downSamplingSize);
-                Filter::down_sampling(nonground_nonseg_cloud, nonground_nonseg_cloud, m_downSamplingSize);
-                Filter::down_sampling(nonground_seg_cloud, nonground_seg_cloud, m_downSamplingSize);
-//            ROS_INFO("DownSampling(Ground): %zu -> %zu", ground_size, ground_cloud.size());
-//            ROS_INFO("DownSampling(NonSeg): %zu -> %zu", nonseg_size, nonground_nonseg_cloud.size());
-//            ROS_INFO("DownSampling(   Seg): %zu -> %zu", seg_size, nonground_seg_cloud.size());
-            }
+        insertScan(sensorToWorldTf.getOrigin(), excluded_cloud, uncategorized_cloud, segments);
 
-//        pcl::PassThrough<PointXYZRGBL> pass_x;
-//        pass_x.setFilterFieldName("x");
-//        pass_x.setFilterLimits(m_pointcloudMinX, m_pointcloudMaxX);
-//        pcl::PassThrough<PointXYZRGBL> pass_y;
-//        pass_y.setFilterFieldName("y");
-//        pass_y.setFilterLimits(m_pointcloudMinY, m_pointcloudMaxY);
-//        pcl::PassThrough<PointXYZRGBL> pass_z;
-//        pass_z.setFilterFieldName("z");
-//        pass_z.setFilterLimits(m_pointcloudMinZ, m_pointcloudMaxZ);
-//
-        PointCloud<PointXYZRGB> pcl_cloud;
-        pcl::copyPointCloud(nonground_seg_cloud, pcl_cloud);
-        pcl_cloud = pcl_cloud + nonground_nonseg_cloud;
-        sensor_msgs::PointCloud2 publish_cloud_msg;
-        pcl::toROSMsg(pcl_cloud, publish_cloud_msg);
-        publish_cloud_msg.header.frame_id = "/map";
-        publish_cloud_msg.header.stamp = ros::Time::now();
-        m_pointCloudPub.publish(publish_cloud_msg);
+        ROS_INFO("Pointcloud insertion in octomap_server done %f sec)", (ros::WallTime::now() - startTime).toSec());
+        publishAll(cloud_msg->header.stamp);
 
-//            insertScan(sensorToWorldTf.getOrigin(), ground_cloud, ceiling_cloud, nonground_nonseg_cloud, nonground_seg_cloud, segments);
-//
-            ROS_INFO("Pointcloud insertion in octomap_server done %f sec)", (ros::WallTime::now() - startTime).toSec());
-//            publishAll(cloud_msg->header.stamp);
-        } catch (exception e) {
-            ROS_ERROR("Failed");
-
-        }
     }
 
+    void OctomapServer::cloud_classification(const PointCloud<PointXYZRGB> &cloud,
+                                             PointCloud<PointXYZRGB> &excluded_cloud,
+                                             PointCloud<PointXYZRGB> &uncategorized_cloud,
+                                             std::vector<semantic_segmentation::SemanticObject> &segments) {
+        std::vector<bool> is_excluded;
+        std::vector<bool> is_infinite;
+        int excluded_size = Filter::exclude_filter(cloud, is_excluded, m_ground_filter_distance, m_ceiling_filter_distance);
+        Filter::infinite_filter(cloud, is_infinite);
+        int excluded_index = 0;
+        int uncategorized_index = 0;
+        excluded_cloud.resize(excluded_size);
+        uncategorized_cloud.resize(cloud.size() - excluded_cloud.size());
+        std::vector<int> is_segments(cloud.size(), false);
+        for (auto &segment:segments) {
+            segment.cloud.resize(segment.masks.size());
+            for (int i = 0; i < int(segment.masks.size()); ++i) {
+                auto index = segment.masks[i];
+                auto &point = cloud[index];
+                segment.cloud[i] = point;
+                is_segments[index] = true;
+            }
+        }
+        for (int i = 0; i < int(cloud.size()); ++i) {
+            if (is_infinite[i]) {
+                continue;
+            }
+            auto &point = cloud[i];
+            if (is_excluded[i]) {
+                excluded_cloud[excluded_index] = point;
+                ++excluded_index;
+                continue;
+            }
+            if (!is_segments[i]) {
+                uncategorized_cloud[uncategorized_index] = point;
+                ++uncategorized_index;
+            }
+        }
+        excluded_cloud.resize(excluded_index);
+        uncategorized_cloud.resize(uncategorized_index);
+    }
 
-    void OctomapServer::insertScan(const tf::Point &sensorOriginTf, const PointCloud<PointXYZRGB> &ground, const PointCloud<PointXYZRGB> &ceiling,
-                                   const PointCloud<PointXYZRGB> &nonground_nonseg, const PointCloud<PointXYZRGBL> &nonground_seg,
-                                   const std::vector<semantic_mapping::Segment> &segments) {
+    void OctomapServer::insertScan(const tf::Point &sensorOriginTf,
+                                   const PointCloud<PointXYZRGB> &excluded_cloud,
+                                   const PointCloud<PointXYZRGB> &uncategorized_cloud,
+                                   const std::vector<semantic_segmentation::SemanticObject> &segments) {
         //************************************************************************************************************//
         // Check data
         //************************************************************************************************************//
@@ -445,10 +438,10 @@ namespace octomap_server {
         m_octree->coordToKey(sensorOrigin, origin_key);
 
         //************************************************************************************************************//
-        // Ground data process
+        // Excluded Points process
         //************************************************************************************************************//
         //#pragma omp parallel for
-        for (const auto &point:ground) {
+        for (const auto &point:excluded_cloud) {
             Point3D oc_point(point.x, point.y, point.z);
             m_octree->coordToKey(oc_point, oc_tree_key);
             if (hash_set.find(oc_tree_key) == hash_set.end()) {
@@ -461,35 +454,16 @@ namespace octomap_server {
             updateMinKey(oc_tree_key, m_updateBBXMin);
             updateMaxKey(oc_tree_key, m_updateBBXMax);
         }
-        ROS_INFO("Ground Data done %f sec)", (ros::WallTime::now() - startTime).toSec());
+        ROS_INFO("Excluded Points done %f sec)", (ros::WallTime::now() - startTime).toSec());
 
         //************************************************************************************************************//
-        // Ceiling data process
+        // uncategorized data process
         //************************************************************************************************************//
-        //#pragma omp parallel for
-        for (const auto &point:ceiling) {
-            Point3D oc_point(point.x, point.y, point.z);
-            m_octree->coordToKey(oc_point, oc_tree_key);
-            if (hash_set.find(oc_tree_key) == hash_set.end()) {
-                continue;
-            }
-            hash_set.insert(oc_tree_key);
-            if (m_octree->computeRayKeys(origin_key, oc_tree_key, m_keyRay)) {
-                free_cells.insert(m_keyRay.begin(), m_keyRay.end());
-            }
-            updateMinKey(oc_tree_key, m_updateBBXMin);
-            updateMaxKey(oc_tree_key, m_updateBBXMax);
-        }
-        ROS_INFO("Ground Data done %f sec)", (ros::WallTime::now() - startTime).toSec());
-
-        //************************************************************************************************************//
-        // Nonground data process
-        //************************************************************************************************************//
-        for (const auto &point : nonground_nonseg) {
+        for (const auto &point : uncategorized_cloud) {
             Point3D oc_point(point.x, point.y, point.z);
             m_octree->coordToKey(oc_point, oc_tree_key);
 
-            if (hash_set.find(oc_tree_key) != hash_set.end() || update_occupied_cells.find(oc_tree_key) != update_occupied_cells.end()) {
+            if (hash_set.find(oc_tree_key) != hash_set.end()) {
                 continue;
             }
             hash_set.insert(oc_tree_key);
@@ -504,30 +478,57 @@ namespace octomap_server {
             }
             m_octree->updateNodeValue(oc_tree_key, true);
         }
-        ROS_INFO("NonGround Data done %f sec)", (ros::WallTime::now() - startTime).toSec());
+        ROS_INFO("Uncategorized Data done %f sec)", (ros::WallTime::now() - startTime).toSec());
 
         //************************************************************************************************************//
         // Segmentation data process
         //************************************************************************************************************//
         //#pragma omp parallel for
-        for (const auto &point:nonground_seg) {
-            Point3D oc_point(point.x, point.y, point.z);
-            m_octree->coordToKey(oc_point, oc_tree_key);
-            if (hash_set.find(oc_tree_key) != hash_set.end() || update_occupied_cells.find(oc_tree_key) != update_occupied_cells.end()) {
-                continue;
-            }
-            if (hash_set.find(oc_tree_key) == hash_set.end()) {
-                hash_set.insert(oc_tree_key);
-                if (m_octree->computeRayKeys(origin_key, oc_tree_key, m_keyRay)) {
-                    free_cells.insert(m_keyRay.begin(), m_keyRay.end());
+        for (const auto &segment:segments) {
+            KeySet cells;
+            std::tr1::unordered_set<int> id_set;
+            for (const auto &point:segment.cloud) {
+                Point3D oc_point(point.x, point.y, point.z);
+                m_octree->coordToKey(oc_point, oc_tree_key);
+                if (hash_set.find(oc_tree_key) != hash_set.end()) {
+                    continue;
                 }
-                occupied_cells.insert(oc_tree_key);
-                updateMinKey(oc_tree_key, m_updateBBXMin);
-                updateMaxKey(oc_tree_key, m_updateBBXMax);
+                if (hash_set.find(oc_tree_key) == hash_set.end()) {
+                    hash_set.insert(oc_tree_key);
+                    if (m_octree->computeRayKeys(origin_key, oc_tree_key, m_keyRay)) {
+                        free_cells.insert(m_keyRay.begin(), m_keyRay.end());
+                    }
+                    occupied_cells.insert(oc_tree_key);
+                    cells.insert(oc_tree_key);
+                    updateMinKey(oc_tree_key, m_updateBBXMin);
+                    updateMaxKey(oc_tree_key, m_updateBBXMax);
+                    OcTreeNode *node = m_octree->updateNodeValue(oc_tree_key, true);
+                    int id = node->get_id(segment.Class);
+                    if (id >= 0) {
+                        id_set.insert(id);
+                    }
+                }
             }
-            OcTreeNode *node = m_octree->updateNodeValue(oc_tree_key, true);
-            auto *segment = &segments[point.label].segment;
-            node->update_label_probability(segment->Class, segment->probability);
+            int id = INT_MAX;
+            if (id_set.empty()) {
+                id = m_number_of_objects;
+                ++m_number_of_objects;
+            } else if (id_set.size() == 1) {
+                id = (*id_set.begin());
+            } else {
+                for (auto key:id_set) {
+                    if (id > key) {
+                        id = key;
+                    }
+                }
+            }
+            // ID を合併させたあとの処理がない
+            // 全探索か何かを組む必要がある
+            printf("%s, %d, %zu\n", segment.Class.data(), id, id_set.size());
+            for (const auto &key:cells) {
+                OcTreeNode *node = m_octree->get_node(key);
+                node->update_label_probability(segment.Class, id, segment.probability);
+            }
         }
         ROS_INFO("Segmentation Data done %f sec)", (ros::WallTime::now() - startTime).toSec());
 
@@ -553,7 +554,7 @@ namespace octomap_server {
             m_octree->prune();
         }
 
-        update_occupied_cells = occupied_cells;
+//        update_occupied_cells = occupied_cells;
     }
 
 
@@ -1207,8 +1208,8 @@ namespace octomap_server {
             // will overwrite them because the server is not able to match parameters' names.
             if (m_initConfig) {
                 // If parameters do not have the default value, dynamic reconfigure server should be updated.
-                if (!is_equal(m_groundFilterDistance, 0.04)) {
-                    config.ground_filter_distance = m_groundFilterDistance;
+                if (!is_equal(m_ground_filter_distance, 0.04)) {
+                    config.ground_filter_distance = m_ground_filter_distance;
                 }
                 if (!is_equal(m_groundFilterAngle, 0.15)) {
                     config.ground_filter_angle = m_groundFilterAngle;
@@ -1236,7 +1237,7 @@ namespace octomap_server {
                 boost::recursive_mutex::scoped_lock reconf_lock(m_config_mutex);
                 m_reconfigureServer.updateConfig(config);
             } else {
-                m_groundFilterDistance = config.ground_filter_distance;
+                m_ground_filter_distance = config.ground_filter_distance;
                 m_groundFilterAngle = config.ground_filter_angle;
                 m_groundFilterPlaneDistance = config.ground_filter_plane_distance;
                 m_maxRange = config.sensor_model_max_range;

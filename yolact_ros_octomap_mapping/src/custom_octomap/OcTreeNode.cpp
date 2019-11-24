@@ -412,17 +412,29 @@ namespace custom_octomap {
         color = getAverageChildColor();
     }
 
-    void OcTreeNode::update_label_probability(std::string label, double probability) {
-        auto id = label_map.find(label);
-        if (id == label_map.end()) {
-            int index = label_map.size();
-            label_map[label] = index;
-            probabilities.emplace_back(probability);
-            observation_counts.emplace_back(1);
+    void OcTreeNode::update_label_probability(const std::string &name, int id, double probability) {
+        auto key = label_map.find(name);
+        if (key == label_map.end()) {
+            label_map[name] = Label(id, probability, 0);
+//            printf("%s: %d -> %d\n", name.data(), id, label_map[name].id);
         } else {
-            int index = (*id).second;
-            probabilities[index] = (probabilities[index] + probability) / observation_counts[index];
-            ++observation_counts[index];
+            auto &label = label_map[name];
+            double prob = label.probability;
+            if ((*key).second.id != id) {
+                label.id = id;
+            }
+            label.probability = (prob + probability) / label.number_of_observation;
+            ++(label.number_of_observation);
+        }
+    }
+
+    int OcTreeNode::get_id(const std::string &name) {
+        auto key = label_map.find(name);
+        printf("%s: %zu\n", name.data(), label_map.size());
+        if (key != label_map.end()) {
+            return (*key).second.id;
+        } else {
+            return -1;
         }
     }
 

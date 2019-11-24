@@ -183,6 +183,8 @@ namespace custom_octomap {
 
             OcTreeNode *clustering(KeySet &set);
 
+            OcTreeNode *get_node(const OcTreeKey &key);
+
         protected:
 
             OccupancyOcTreeBase(double resolution, unsigned int tree_depth, unsigned int tree_max_val);
@@ -198,9 +200,6 @@ namespace custom_octomap {
             virtual void updateInnerOccupancyRecurs(OcTreeNode *node, unsigned int depth);
 
             void toMaxLikelihoodRecurs(OcTreeNode *node, unsigned int depth, unsigned int max_depth);
-
-
-        protected:
 
             bool use_bbx_limit;
             point3d bbx_min;

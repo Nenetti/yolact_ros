@@ -17,45 +17,23 @@ set(PACKAGE_DEPENDENCIES
         actionlib_msgs
         )
 
+file(GLOB MODULES
+        src/custom_octomap/*.cpp
+        src/octomap_server/modules/*.cpp
+        src/semantic_segmentation/modules/*.cpp
+        )
+
 SET(SRCS
-        src/custom_octomap/AbstractOccupancyOcTree.cpp
-        src/custom_octomap/AbstractOcTree.cpp
-        src/custom_octomap/Color.cpp
-        src/custom_octomap/ColorOcTree.cpp
-        src/custom_octomap/OccupancyOcTreeBase.cpp
-        src/custom_octomap/OcTreeBaseImpl.cpp
-        src/custom_octomap/OcTreeIterator.cpp
-        src/custom_octomap/OcTreeKey.cpp
-        src/custom_octomap/OcTreeNode.cpp
+        ${MODULES}
         src/octomap_server/octomap_server.cpp
-        src/octomap_server/filter.cpp
-        src/semantic_mapping/geometric_edge_map.cpp
-        src/semantic_mapping/filter.cpp
-        src/semantic_mapping/segmentation_client.cpp
-        src/semantic_mapping/cluster.cpp
-        src/semantic_mapping/segment.cpp
-        src/semantic_mapping/marker_client.cpp
-        src/semantic_mapping/semantic_mapping.cpp
-        src/segmentation_server/segmentation_server.cpp
+        src/semantic_segmentation/segmentation_client.cpp
+        src/semantic_segmentation/segmentation_server.cpp
         )
 
 find_package(catkin REQUIRED COMPONENTS ${PACKAGE_DEPENDENCIES} message_generation)
 find_package(OpenCV REQUIRED)
 find_package(octomap REQUIRED)
 
-add_message_files(
-        FILES
-        SegmentMarker.msg
-        SegmentMarkers.msg
-)
-
-generate_messages(
-        DEPENDENCIES
-        geometry_msgs
-        sensor_msgs
-        std_msgs
-        actionlib_msgs
-)
 
 add_definitions(-DOCTOMAP_NODEBUGOUT)
 include_directories(
@@ -72,7 +50,6 @@ catkin_package(
         LIBRARIES ${PROJECT_NAME}
         CATKIN_DEPENDS ${PACKAGE_DEPENDENCIES}
         DEPENDS OCTOMAP
-        message_runtime
 )
 
 set(LINK_LIBS
@@ -95,12 +72,8 @@ add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_gencfg)
 add_executable(octomap_server_node src/octomap_server/octomap_server_node.cpp)
 target_link_libraries(octomap_server_node ${PROJECT_NAME} ${LINK_LIBS})
 
-add_executable(segmentation_server_node src/segmentation_server/segmentation_server_node.cpp)
+add_executable(segmentation_server_node src/semantic_segmentation/segmentation_server_node.cpp)
 target_link_libraries(segmentation_server_node ${PROJECT_NAME} ${LINK_LIBS})
-
-# Nodelet
-#add_library(octomap_server_nodelet src/octomap_server_nodelet.cpp)
-#target_link_libraries(octomap_server_nodelet ${PROJECT_NAME} ${LINK_LIBS})
 
 # install targets:
 install(TARGETS ${PROJECT_NAME}

@@ -177,9 +177,27 @@ namespace custom_octomap {
 
             Color getAverageChildColor() const;
 
-            void update_label_probability(std::string label, double probability);
+            void update_label_probability(const std::string &name, int id, double probability);
+
+            int get_id(const std::string &name);
 
             bool is_pruned = false;
+
+            struct Label {
+
+                public:
+
+                    Label() {}
+
+                    explicit Label(int _id, double _probability, int _number_of_observation) :
+                            id(_id), probability(_probability), number_of_observation(_number_of_observation) {}
+
+                    int id;
+                    double probability;
+                    int number_of_observation;
+
+
+            };
 
         protected:
 
@@ -189,10 +207,7 @@ namespace custom_octomap {
 
             float value;
 
-            std::tr1::unordered_map<std::string, int> label_map;
-            std::vector<double> probabilities;
-            std::vector<int> observation_counts;
-
+            std::tr1::unordered_map<std::string, Label> label_map;
             Color color;
 
     };
