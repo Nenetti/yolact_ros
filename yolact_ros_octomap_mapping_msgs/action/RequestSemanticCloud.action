@@ -1,0 +1,13 @@
+# Check if objects in image
+
+# Goal definition
+sensor_msgs/PointCloud2 cloud
+int32 id
+
+---
+# Result definition
+SemanticObjects semantic_objects
+int32 id
+
+---
+# Feedback definition

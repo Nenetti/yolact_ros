@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<launch>
+
+    <node name="segmentation_server_node" pkg="yolact_ros_octomap_mapping" type="segmentation_server_node" output="screen">
+<!--        <remap from="cloud_in" to="/hsrb/head_rgbd_sensor/depth_registered/rectified_points"/>-->
+<!--        <remap from="cloud_out" to="segmentation_cloud"/>-->
+        <param name="frame_id" type="string" value="/map"/>
+        <param name="base_frame_id" value="/base_footprint"/>
+        <param name="publish/segmentation_cloud" value="true"/>
+        <param name="publish/segmentation_filter_image" value="true"/>
+        <param name="publish/clustering_edge_image" value="true"/>
+        <param name="publish/segmentation_marker" value="true"/>
+        <param name="publish/segmentation_marker_info" value="true"/>
+        <param name="filter/ground_distance" value="0.07"/>
+        <param name="filter/ceiling_distance" value="2.0"/>
+    </node>
+
+</launch>
