@@ -185,9 +185,11 @@ namespace custom_octomap {
 
             OcTreeNode *get_node(const OcTreeKey &key);
 
-            std::tr1::unordered_map<int, std::tr1::unordered_set<OcTreeKey>> semantic_node_map;
+            void remove_id(int id);
 
-            std::tr1::unordered_set<OcTreeKey> *get_semantic_nodes(int id);
+            std::tr1::unordered_map<int, std::tr1::unordered_set<OcTreeKey, OcTreeKey::KeyHash>> semantic_node_map;
+
+            std::tr1::unordered_set<OcTreeKey, OcTreeKey::KeyHash> *get_semantic_nodes(int id);
 
         protected:
 

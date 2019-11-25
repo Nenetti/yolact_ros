@@ -92,6 +92,11 @@ namespace octomap_server {
 
             typedef pcl::PointIndices PCLIndices;
 
+            template<class T>
+            using HashSet=std::tr1::unordered_set<T>;
+            template<class T, class K>
+            using HashMap=std::tr1::unordered_map<T, K>;
+
             OctomapServer(ros::NodeHandle private_nh_ = ros::NodeHandle("~"));
 
             virtual ~OctomapServer();
@@ -356,6 +361,8 @@ namespace octomap_server {
 
             PointCloud<PointXYZRGBL> m_all_cloud;
 
+            std::vector<custom_octomap::Color> m_colors;
+
 //            void insertScan(const tf::Point &sensorOriginTf, const PointCloud<PointXYZRGB> &ground, const PointCloud<PointXYZRGB> &ceiling,
 //                            const PointCloud<PointXYZRGB> &nonground_nonseg, const PointCloud<PointXYZRGBL> &nonground_seg,
 //                            const std::vector<semantic_mapping::Segment> &segments);
@@ -368,6 +375,10 @@ namespace octomap_server {
 
             void insertScan(const tf::Point &sensorOriginTf, const PointCloud<PointXYZRGB> &excluded_cloud, const PointCloud<PointXYZRGB> &uncategorized_cloud,
                             const std::vector<semantic_segmentation::SemanticObject> &segments);
+
+            void generate_color();
+
+            void semantic_node_process(const custom_octomap::KeySet &keys, const HashSet<int> &ids, const semantic_segmentation::SemanticObject &segment);
     };
 }
 

@@ -486,7 +486,7 @@ namespace octomap_server {
         //#pragma omp parallel for
         for (const auto &segment:segments) {
             KeySet cells;
-            std::tr1::unordered_set<int> id_set;
+            HashSet<int> id_set;
             for (const auto &point:segment.cloud) {
                 Point3D oc_point(point.x, point.y, point.z);
                 m_octree->coordToKey(oc_point, oc_tree_key);
@@ -509,41 +509,9 @@ namespace octomap_server {
                     }
                 }
             }
-            // 取得してきた範囲にあるIDのうち最小のものを取得してくる
-            // IDが存在しない場合は、新たにIDを生成
-            int object_id = INT_MAX;
-            if (id_set.empty()) {
-                object_id = m_number_of_objects;
-                ++m_number_of_objects;
-            } else {
-                for (auto key:id_set) {
-                    if (object_id > key) {
-                        object_id = key;
-                    }
-                }
-            }
-            // 取得してきたIDが複数ある場合すべてのIDを上書きする
-            if (id_set.size() > 1) {
-                auto nodes = m_octree->get_semantic_nodes(object_id);
-                if (nodes != nullptr) {
-                    for (auto &key:*nodes) {
-                        OcTreeNode *node = m_octree->get_node(key);
-                        node->update_label_probability(segment.Class, object_id, segment.probability);
-                    }
-                }
-            }
-            printf("%s, %d, %zu\n", segment.Class.data(), object_id, id_set.size());
-            for (auto &key:cells) {
-                OcTreeNode *node = m_octree->get_node(key);
-                node->update_label_probability(segment.Class, object_id, segment.probability);
-                auto map = m_octree->semantic_node_map.find(object_id);
-                if (map == m_octree->semantic_node_map.end()) {
-                    m_octree->semantic_node_map[object_id] = std::tr1::unordered_set<OcTreeKey>();
-                    map = m_octree->semantic_node_map.find(object_id);
-                }
-                (*map).second.insert(key);
-            }
+            semantic_node_process(cells, id_set, segment);
         }
+
         ROS_INFO("Segmentation Data done %f sec)", (ros::WallTime::now() - startTime).toSec());
 
         //************************************************************************************************************//
@@ -567,8 +535,74 @@ namespace octomap_server {
         if (m_compressMap) {
             m_octree->prune();
         }
-
 //        update_occupied_cells = occupied_cells;
+    }
+
+    void OctomapServer::semantic_node_process(const KeySet &keys, const HashSet<int> &ids, const semantic_segmentation::SemanticObject &segment) {
+        // 取得してきた範囲にあるIDのうち最小のものを取得してくる
+        // IDが存在しない場合は、新たにIDを生成
+        int object_id = INT_MAX;
+        if (ids.empty()) {
+            object_id = m_number_of_objects;
+            ++m_number_of_objects;
+            generate_color();
+        } else {
+            for (auto key:ids) {
+                if (object_id > key) {
+                    object_id = key;
+                }
+            }
+        }
+        auto &color = m_colors[object_id];
+        // 取得してきたIDが複数ある場合すべてのIDを上書きする
+        if (ids.size() > 1) {
+            for (int id: ids) {
+                if (id == object_id) {
+                    continue;
+                }
+                printf("統合: %d -> %d", id, object_id);
+                auto nodes = m_octree->get_semantic_nodes(id);
+                if (nodes != nullptr) {
+                    for (auto &key:*nodes) {
+                        OcTreeNode *node = m_octree->get_node(key);
+                        node->update_label_probability(segment.Class, object_id, segment.probability);
+                    }
+                    m_octree->remove_id(id);
+                }
+            }
+        }
+        auto map = m_octree->semantic_node_map.find(object_id);
+        if (map == m_octree->semantic_node_map.end()) {
+            m_octree->semantic_node_map[object_id] = std::tr1::unordered_set<OcTreeKey, OcTreeKey::KeyHash>();
+            map = m_octree->semantic_node_map.find(object_id);
+        }
+        auto &key_set = (*map).second;
+        for (const auto &key:keys) {
+            OcTreeNode *node = m_octree->get_node(key);
+            node->update_label_probability(segment.Class, object_id, segment.probability);
+            key_set.insert(key);
+        }
+        printf("サイズ = %zu\n", m_octree->semantic_node_map.size());
+    }
+
+    void OctomapServer::generate_color() {
+        std::random_device rnd;
+        std::mt19937 mt(rnd());
+        std::uniform_int_distribution<> rand100(0, 255);
+        custom_octomap::Color color;
+        int r, g, b;
+        while (true) {
+            r = rand100(mt);
+            g = rand100(mt);
+            b = rand100(mt);
+            if ((r > 150 || g > 150 || b > 150) && r + g + b > 300) {
+                break;
+            }
+        }
+        color.r = r;
+        color.g = g;
+        color.b = b;
+        m_colors.emplace_back(color);
     }
 
 
@@ -818,9 +852,9 @@ namespace octomap_server {
     }
 
 
-    /***********************************************************************************************************
-     * File
-     **********************************************************************************************************/
+/***********************************************************************************************************
+ * File
+ **********************************************************************************************************/
     bool OctomapServer::openFile(const std::string &filename) {
 //        if (filename.length() <= 3) {
 //            return false;
@@ -902,9 +936,9 @@ namespace octomap_server {
 
     }
 
-    /***********************************************************************************************************
-     * Service Callback
-     **********************************************************************************************************/
+/***********************************************************************************************************
+ * Service Callback
+ **********************************************************************************************************/
     bool OctomapServer::octomapBinarySrv(OctomapSrv::Request &req,
                                          OctomapSrv::Response &res) {
         ros::WallTime startTime = ros::WallTime::now();

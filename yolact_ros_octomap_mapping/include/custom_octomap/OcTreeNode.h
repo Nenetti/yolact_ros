@@ -187,15 +187,14 @@ namespace custom_octomap {
 
                 public:
 
-                    Label() {}
+                    Label() = default;
 
                     explicit Label(int _id, double _probability, int _number_of_observation) :
                             id(_id), probability(_probability), number_of_observation(_number_of_observation) {}
 
-                    int id;
-                    double probability;
-                    int number_of_observation;
-
+                    int id{};
+                    double probability{};
+                    int number_of_observation{};
 
             };
 

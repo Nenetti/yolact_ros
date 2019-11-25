@@ -429,7 +429,6 @@ namespace custom_octomap {
 
     int OcTreeNode::get_id(const std::string &name) {
         auto key = label_map.find(name);
-        printf("%s: %zu\n", name.data(), label_map.size());
         if (key != label_map.end()) {
             return (*key).second.id;
         } else {
