@@ -185,6 +185,10 @@ namespace custom_octomap {
 
             OcTreeNode *get_node(const OcTreeKey &key);
 
+            std::tr1::unordered_map<int, std::tr1::unordered_set<OcTreeKey>> semantic_node_map;
+
+            std::tr1::unordered_set<OcTreeKey> *get_semantic_nodes(int id);
+
         protected:
 
             OccupancyOcTreeBase(double resolution, unsigned int tree_depth, unsigned int tree_max_val);

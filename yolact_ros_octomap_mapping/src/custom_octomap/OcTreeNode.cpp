@@ -415,8 +415,7 @@ namespace custom_octomap {
     void OcTreeNode::update_label_probability(const std::string &name, int id, double probability) {
         auto key = label_map.find(name);
         if (key == label_map.end()) {
-            label_map[name] = Label(id, probability, 0);
-//            printf("%s: %d -> %d\n", name.data(), id, label_map[name].id);
+            label_map[name] = Label(id, probability, 1);
         } else {
             auto &label = label_map[name];
             double prob = label.probability;

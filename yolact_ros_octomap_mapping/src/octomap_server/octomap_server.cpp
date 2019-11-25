@@ -509,25 +509,39 @@ namespace octomap_server {
                     }
                 }
             }
-            int id = INT_MAX;
+            // 取得してきた範囲にあるIDのうち最小のものを取得してくる
+            // IDが存在しない場合は、新たにIDを生成
+            int object_id = INT_MAX;
             if (id_set.empty()) {
-                id = m_number_of_objects;
+                object_id = m_number_of_objects;
                 ++m_number_of_objects;
-            } else if (id_set.size() == 1) {
-                id = (*id_set.begin());
             } else {
                 for (auto key:id_set) {
-                    if (id > key) {
-                        id = key;
+                    if (object_id > key) {
+                        object_id = key;
                     }
                 }
             }
-            // ID を合併させたあとの処理がない
-            // 全探索か何かを組む必要がある
-            printf("%s, %d, %zu\n", segment.Class.data(), id, id_set.size());
-            for (const auto &key:cells) {
+            // 取得してきたIDが複数ある場合すべてのIDを上書きする
+            if (id_set.size() > 1) {
+                auto nodes = m_octree->get_semantic_nodes(object_id);
+                if (nodes != nullptr) {
+                    for (auto &key:*nodes) {
+                        OcTreeNode *node = m_octree->get_node(key);
+                        node->update_label_probability(segment.Class, object_id, segment.probability);
+                    }
+                }
+            }
+            printf("%s, %d, %zu\n", segment.Class.data(), object_id, id_set.size());
+            for (auto &key:cells) {
                 OcTreeNode *node = m_octree->get_node(key);
-                node->update_label_probability(segment.Class, id, segment.probability);
+                node->update_label_probability(segment.Class, object_id, segment.probability);
+                auto map = m_octree->semantic_node_map.find(object_id);
+                if (map == m_octree->semantic_node_map.end()) {
+                    m_octree->semantic_node_map[object_id] = std::tr1::unordered_set<OcTreeKey>();
+                    map = m_octree->semantic_node_map.find(object_id);
+                }
+                (*map).second.insert(key);
             }
         }
         ROS_INFO("Segmentation Data done %f sec)", (ros::WallTime::now() - startTime).toSec());

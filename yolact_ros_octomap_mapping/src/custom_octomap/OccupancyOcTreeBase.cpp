@@ -389,6 +389,14 @@ namespace custom_octomap {
         return node;
     }
 
+    std::tr1::unordered_set<OcTreeKey> *OccupancyOcTreeBase::get_semantic_nodes(int id) {
+        auto set = semantic_node_map.find(id);
+        if (set != semantic_node_map.end()) {
+            return &(*set).second;
+        }
+        return nullptr;
+    }
+
     OcTreeNode *OccupancyOcTreeBase::clustering(KeySet &set) {
 //        int pos = 0;
 //        OcTreeNode *node = this->root;
