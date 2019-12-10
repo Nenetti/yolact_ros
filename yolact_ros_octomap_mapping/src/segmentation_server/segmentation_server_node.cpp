@@ -1,6 +1,6 @@
 
 #include <ros/ros.h>
-#include <segmentation_server/segmenatation_server.h>
+#include <segmentation_server/segmentation_server.h>
 
 int main(int argc, char **argv) {
     ros::init(argc, argv, "segmentation_server");
