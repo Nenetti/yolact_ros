@@ -11,7 +11,7 @@ import numpy as np
 import rospy
 import torch
 import torch.backends.cudnn as cudnn
-from sensor_msgs.msg import Image
+from sensor_msgs.msg import CompressedImage
 from yolact_ros.msg import Segment, Segments, SegmentationGoal, SegmentationResult, SegmentationAction
 
 from modules.data import cfg, set_cfg, COLORS
@@ -43,8 +43,8 @@ class YolactObjectDetector:
         self.load_model()
         self.server = actionlib.SimpleActionServer("yolact_ros/check_for_objects", SegmentationAction,
                                                    self.action_call_back, auto_start=False)
-        self.subscriber = rospy.Subscriber("yolact_ros/image", Image, self.call_back, queue_size=1)
-        self.image_pub = rospy.Publisher("yolact_ros/detection_image", Image, queue_size=1)
+        self.subscriber = rospy.Subscriber("yolact_ros/image/compressed", CompressedImage, self.call_back, queue_size=1)
+        self.image_pub = rospy.Publisher("yolact_ros/detection/image/compressed", CompressedImage, queue_size=1)
         self.segments_info_pub = rospy.Publisher("yolact_ros/segments", Segments, queue_size=1)
         self.server.start()
 
@@ -54,7 +54,7 @@ class YolactObjectDetector:
         :return: SegmentationResult
         """
         print("subscribe")
-        image = self._bridge.imgmsg_to_cv2(goal.image)
+        image = self._bridge.compressed_imgmsg_to_cv2(goal.image, desired_encoding="rgb8")
         msg = self.eval_image(image)
         if not self.server.is_preempt_requested():
             if msg is not None:
@@ -64,19 +64,19 @@ class YolactObjectDetector:
                 self.server.set_succeeded(result)
 
                 detect_image = self.to_mask_image(image, msg)
-                result_msg = self._bridge.cv2_to_imgmsg(detect_image)
+                result_msg = self._bridge.cv2_to_compressed_imgmsg(detect_image, dst_format='jpg')
                 result_msg.header.stamp = rospy.Time.now()
                 self.image_pub.publish(result_msg)
 
     def call_back(self, msg):
         """
-        :type msg: Image
+        :type msg: CompressedImage
         """
         print("subscribe")
-        image = self._bridge.imgmsg_to_cv2(msg)
+        image = self._bridge.compressed_imgmsg_to_cv2(msg, desired_encoding="rgb8")
         result = self.eval_image(image)
         detect_image = self.to_mask_image(image, result)
-        result_msg = self._bridge.cv2_to_imgmsg(detect_image)
+        result_msg = self._bridge.cv2_to_compressed_imgmsg(detect_image, dst_format='jpg')
         result_msg.header.stamp = rospy.Time.now()
         self.image_pub.publish(result_msg)
         self.segments_info_pub.publish(result)
@@ -131,7 +131,7 @@ class YolactObjectDetector:
             self.net.load_weights(self.trained_model)
             self.net.eval()
             self.net = self.net.cuda()
-            print("Loading model Done.")
+            print("Loading model done.")
 
             self.net.detect.use_fast_nms = True
             cfg.mask_proto_debug = False
@@ -155,7 +155,7 @@ class YolactObjectDetector:
 
     def prep_display(self, dets_out, img):
         """
-        Note: If undo_transform=False then im_h and im_w are allowed to be None.
+        Note: If 'undo_transform=False' then 'im_h' and 'im_w' are allowed to be 'None'.
         """
         h, w, _ = img.shape
 
@@ -167,7 +167,7 @@ class YolactObjectDetector:
 
         with timer.env("Copy"):
             if cfg.eval_mask_branch:
-                # Masks are drawn on the GPU, so don"t copy
+                # Masks are drawn on the GPU, so don't copy.
                 masks = t[3][:self.top_k]
             classes, scores, boxes = [x[:self.top_k].cpu().detach().numpy() for x in t[:3]]
 
@@ -178,7 +178,7 @@ class YolactObjectDetector:
                 break
 
         if num_dets_to_consider == 0:
-            # No detections found so just output the original image
+            # No detections found so just output the original image.
             return Segments()
 
         mask_indices = [np.zeros(0)] * num_dets_to_consider

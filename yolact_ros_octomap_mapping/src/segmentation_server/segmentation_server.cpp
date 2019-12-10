@@ -2,7 +2,7 @@
 // Created by ubuntu on 2019/11/14.
 //
 
-#include <segmentation_server/segmenatation_server.h>
+#include <segmentation_server/segmentation_server.h>
 #include <pcl_ros/transforms.h>
 
 
