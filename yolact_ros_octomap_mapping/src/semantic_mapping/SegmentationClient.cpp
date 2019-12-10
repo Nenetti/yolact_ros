@@ -3,6 +3,7 @@
 //
 
 #include <semantic_mapping/SegmentationClient.h>
+#include <sensor_msgs/CompressedImage.h>
 #include <sensor_msgs/Image.h>
 #include <pcl_conversions/pcl_conversions.h>
 #include <yolact_ros/SegmentationGoal.h>
@@ -20,7 +21,7 @@ namespace semantic_mapping {
      */
     SegmentationClient::SegmentationClient() {
         m_segmentationClient = new actionlib::SimpleActionClient<yolact_ros::SegmentationAction>("/yolact_ros/check_for_objects", true);
-        m_image_pub = m_nh.advertise<sensor_msgs::Image>("/segmentation/image_raw", 1, true);
+        m_image_pub = m_nh.advertise<sensor_msgs::CompressedImage>("/yolact_ros/segmentation/image/compressed", 1, true);
     }
 
     /*******************************************************************************************************************
@@ -101,9 +102,9 @@ namespace semantic_mapping {
             cv::rectangle(mask_image, cv::Point(x1, y1), cv::Point(x1 + text_size.width, y1 - text_size.height - 4), *color, -1);
             cv::putText(mask_image, text, cv::Point(x1, y1 - 3), cv::FONT_HERSHEY_DUPLEX, 0.6, text_color, 1, 16);
         }
-        sensor_msgs::ImagePtr msg = cv_bridge::CvImage(image.header, "bgr8", mask_image).toImageMsg();
+        sensor_msgs::CompressedImagePtr msg = cv_bridge::CvImage(image.header, "bgr8", mask_image).toCompressedImageMsg();
         m_image_pub.publish(msg);
-        cv::imwrite("/root/HSR/catkin_ws/mask_image.jpg", mask_image);
+        cv::imwrite("/root/HSR/catkin_ws/src/yolact_ros/mask_image.jpg", mask_image);
     }
 
     /*******************************************************************************************************************
