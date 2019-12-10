@@ -36,17 +36,18 @@ Original `LICENSE`: https://github.com/dbolya/yolact/blob/1763e8fc2f90c25293695f
 *   `mapping_demo.launch`: Start the demonstration of the segmentation action.
 
 ## Nodes <a id="yolact_ros_nodes"></a>
-### Subscribed Topics
-* **`yolact_ros/image`** ([sensor_msgs/Image])
 
-### Published Topics
-* **`yolact_ros/detection_image`** ([sensor_msgs/Image])
+Subscribed topic:
+* **`yolact_ros/image/compressed`** ([sensor_msgs/CompressedImage])
+
+Published topics:
+* **`yolact_ros/detection/image/compressed`** ([sensor_msgs/CompressedImage])
+* **`yolact_ros/segmentation/image/compressed`** ([sensor_msgs/CompressedImage])
 * **`yolact_ros/segments`** ([yolact_ros/Segments])
 
-### Action
-* **`yolact_ros/check_for_objects`** ([yolact_ros/Segmentation])
-
-    Sends an action with an image and the result is an array of bounding boxes and masks.
+Action:
+* **`yolact_ros/check_for_objects`** ([yolact_ros/Segmentation])  
+Send an action with an image. The result is an array of bounding boxes and masks.
 
 # 'yolact_ros_octomap_mapping' Package <a id="yolact_ros_octomap_mapping_package"></a>
 
