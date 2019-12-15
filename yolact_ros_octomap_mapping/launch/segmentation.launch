@@ -2,7 +2,7 @@
 <launch>
 
     <!-- Octomap dynamic -->
-    <!--    <node pkg="tf" type="static_transform_publisher" name="map_world_broadcaster_dynamic" args="0 0 0 0 0 0 world /map 100" />-->
+    <node pkg="tf" type="static_transform_publisher" name="map_world_broadcaster_dynamic" args="0 0 0 0 0 0 world /map 100" />
 
     <node name="segmentation_server_node" pkg="yolact_ros_octomap_mapping" type="segmentation_server_node" output="screen">
         <remap from="cloud_in" to="/hsrb/head_rgbd_sensor/depth_registered/rectified_points"/>

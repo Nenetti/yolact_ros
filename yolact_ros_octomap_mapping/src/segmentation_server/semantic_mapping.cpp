@@ -188,12 +188,14 @@ namespace segmentation_server {
                 }
             }
             index = std::max_element(occupied.begin(), occupied.end()) - occupied.begin();
-            segment.clusters.emplace_back(clusters[index]);
-            segment.cluster_occupied.emplace_back(occupied[index]);
-            for (int i = 0; i < index; ++i) {
-                if (occupied[i] / size > 0.1) {
-                    segment.clusters.emplace_back(clusters[i]);
-                    segment.cluster_occupied.emplace_back(occupied[i]);
+            if (occupied[index] != 0) {
+                segment.clusters.emplace_back(clusters[index]);
+                segment.cluster_occupied.emplace_back(occupied[index]);
+                for (int i = 0; i < index; ++i) {
+                    if (occupied[i] / size > 0.1) {
+                        segment.clusters.emplace_back(clusters[i]);
+                        segment.cluster_occupied.emplace_back(occupied[i]);
+                    }
                 }
             }
         }
