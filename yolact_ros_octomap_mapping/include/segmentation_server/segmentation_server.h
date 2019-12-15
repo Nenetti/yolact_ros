@@ -11,7 +11,7 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <yolact_ros_octomap_mapping/SegmentMarker.h>
 #include <yolact_ros_octomap_mapping/SegmentMarkers.h>
-
+#include <std_msgs/Bool.h>
 #include <yolact_ros/SegmentationAction.h>
 
 #include <pcl_conversions/pcl_conversions.h>
@@ -35,7 +35,7 @@ namespace segmentation_server {
         protected:
             ros::NodeHandle m_nh;
             ros::Publisher m_cloud_pub, m_segmentation_filter_pub, m_clustering_pub, m_marker_info_pub;
-            ros::Subscriber m_cloud_sub;
+            ros::Subscriber m_cloud_sub, m_activate_sub;
             actionlib::SimpleActionClient<yolact_ros::SegmentationAction> *m_segmentation_client;
 
             std::string m_baseFrameId, m_worldFrameId;
@@ -58,6 +58,8 @@ namespace segmentation_server {
                              const std::vector<semantic_mapping::Cluster> &clusters);
 
             void publish_marker_info(const std::vector<semantic_mapping::Segment> &segments);
+
+            void activate_call_back(const std_msgs::Bool_<std::allocator<void>>::ConstPtr &msg);
     };
 
 }
