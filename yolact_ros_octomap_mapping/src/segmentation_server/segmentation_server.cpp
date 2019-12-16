@@ -60,9 +60,12 @@ namespace segmentation_server {
         sensor_msgs::Image image;
         sensor_msgs::PointCloud2 base_cloud;
         sensor_msgs::PointCloud2 world_cloud;
-
-        pcl_ros::transformPointCloud(m_baseFrameId, *cloud_msg, base_cloud, m_tfListener);
-        pcl_ros::transformPointCloud(m_worldFrameId, base_cloud, world_cloud, m_tfListener);
+        try {
+            pcl_ros::transformPointCloud(m_baseFrameId, *cloud_msg, base_cloud, m_tfListener);
+            pcl_ros::transformPointCloud(m_worldFrameId, base_cloud, world_cloud, m_tfListener);
+        } catch (std::exception e) {
+            return;
+        }
 
         pcl::PointCloud<pcl::PointXYZRGB> cloud;
         pcl::fromROSMsg(world_cloud, cloud);
