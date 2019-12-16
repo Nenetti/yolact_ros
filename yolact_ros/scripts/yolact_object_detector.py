@@ -54,7 +54,7 @@ class YolactObjectDetector:
         :return: SegmentationResult
         """
         print("subscribe")
-        image = self._bridge.imgmsg_to_cv2(goal.image)
+        image = self._bridge.imgmsg_to_cv2(goal.image, desired_encoding="rgb8")
         msg = self.eval_image(image)
         if not self.server.is_preempt_requested():
             if msg is not None:
@@ -63,17 +63,17 @@ class YolactObjectDetector:
                 result.id = goal.id
                 self.server.set_succeeded(result)
 
-                detect_image = self.to_mask_image(image, msg)
-                result_msg = self._bridge.cv2_to_compressed_imgmsg(detect_image)
-                result_msg.header.stamp = rospy.Time.now()
-                self.image_pub.publish(result_msg)
+                # detect_image = self.to_mask_image(image, msg)
+                # result_msg = self._bridge.cv2_to_compressed_imgmsg(detect_image)
+                # result_msg.header.stamp = rospy.Time.now()
+                # self.image_pub.publish(result_msg)
 
     def call_back(self, msg):
         """
         :type msg: CompressedImage
         """
         print("subscribe")
-        image = self._bridge.compressed_imgmsg_to_cv2(msg)
+        image = self._bridge.compressed_imgmsg_to_cv2(msg, desired_encoding="rgb8")
         result = self.eval_image(image)
         detect_image = self.to_mask_image(image, result)
         result_msg = self._bridge.cv2_to_compressed_imgmsg(detect_image)
