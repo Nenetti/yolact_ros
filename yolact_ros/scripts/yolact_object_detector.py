@@ -43,7 +43,8 @@ class YolactObjectDetector:
         self.load_model()
         self.server = actionlib.SimpleActionServer("yolact_ros/check_for_objects", SegmentationAction,
                                                    self.action_call_back, auto_start=False)
-        self.subscriber = rospy.Subscriber("yolact_ros/image/compressed", CompressedImage, self.call_back, queue_size=1)
+        self.subscriber = rospy.Subscriber("yolact_ros/image/compressed", CompressedImage, self.call_back,
+                                           queue_size=10)
         self.image_pub = rospy.Publisher("yolact_ros/detection/image/compressed", CompressedImage, queue_size=1)
         self.segments_info_pub = rospy.Publisher("yolact_ros/segments", Segments, queue_size=1)
         self.server.start()
@@ -72,6 +73,8 @@ class YolactObjectDetector:
         """
         :type msg: CompressedImage
         """
+        if abs(msg.header.stamp.secs - rospy.Time.now().secs) > 1:
+            return
         print("subscribe")
         image = self._bridge.compressed_imgmsg_to_cv2(msg, desired_encoding="rgb8")
         result = self.eval_image(image)
