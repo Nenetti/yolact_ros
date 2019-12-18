@@ -43,7 +43,7 @@ namespace semantic_mapping {
             marker->id = m_line_list_id_base + i;
             marker->action = visualization_msgs::Marker::DELETE;
         }
-        for (int i = 0; i < int(line_list.size()); ++i) {
+        for (int i = 0; i < std::min(int(line_list.size()), 100); ++i) {
             auto *segment = &segments[i];
             if (segment->is_available) {
                 auto *marker = &marker_array.markers[i];
@@ -74,7 +74,7 @@ namespace semantic_mapping {
             marker->id = m_segment_name_id_base + i;
             marker->action = visualization_msgs::Marker::DELETE;
         }
-        for (int i = 0; i < int(segments.size()); ++i) {
+        for (int i = 0; i < std::min(int(segments.size()), 100); ++i) {
             auto *segment = &segments[i];
             if (segment->is_available) {
                 auto *marker = &marker_array.markers[i];
