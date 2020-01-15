@@ -36,7 +36,7 @@ namespace segmentation_server {
 
         m_semantic_map.set_filter(m_ground_distance, m_ceiling_distance);
 
-//        m_cloud_sub = m_nh.subscribe<sensor_msgs::PointCloud2>("cloud_in", 10, &SegmentationServer::call_back, this);
+        m_cloud_sub = m_nh.subscribe<sensor_msgs::PointCloud2>("cloud_in", 10, &SegmentationServer::call_back, this);
         m_activate_sub = m_nh.subscribe<std_msgs::Bool>("activate_in", 10, &SegmentationServer::activate_call_back, this);
 
         m_segmentation_client = new actionlib::SimpleActionClient<yolact_ros::SegmentationAction>("/yolact_ros/check_for_objects", true);
@@ -47,11 +47,11 @@ namespace segmentation_server {
     }
 
     void SegmentationServer::activate_call_back(const std_msgs::Bool::ConstPtr &msg) {
-        if ((*msg).data) {
-            m_cloud_sub = m_nh.subscribe<sensor_msgs::PointCloud2>("cloud_in", 10, &SegmentationServer::call_back, this);
-        } else {
-            m_cloud_sub.shutdown();
-        }
+        // if ((*msg).data) {
+        //     m_cloud_sub = m_nh.subscribe<sensor_msgs::PointCloud2>("cloud_in", 10, &SegmentationServer::call_back, this);
+        // } else {
+        //     m_cloud_sub.shutdown();
+        // }
     }
 
     void SegmentationServer::call_back(const sensor_msgs::PointCloud2::ConstPtr &cloud_msg) {
