@@ -4,6 +4,7 @@
 
 #include <segmentation_server/segmentation_server.h>
 #include <pcl_ros/transforms.h>
+#include <random>
 
 
 namespace segmentation_server {
@@ -191,8 +192,8 @@ namespace segmentation_server {
      */
     void SegmentationServer::publish_clustering_image(const PointCloud<PointXYZRGB> &cloud, const std::vector<semantic_mapping::Cluster> &clusters) {
         cv::Mat image(cloud.height, cloud.width, CV_8UC3, cv::Scalar(255, 255, 255));
-        std::random_device rnd;
-        std::mt19937 mt(rnd());
+//        std::random_device rnd;
+        std::mt19937 mt(0);
         std::uniform_int_distribution<> rand100(0, 255);
         for (auto &cluster:clusters) {
             int r = rand100(mt);

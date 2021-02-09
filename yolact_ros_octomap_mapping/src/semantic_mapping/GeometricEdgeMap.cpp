@@ -8,6 +8,7 @@
 #include <semantic_mapping/SegmentationClient.h>
 #include <omp.h>
 #include <cv_bridge/cv_bridge.h>
+#include <random>
 
 namespace semantic_mapping {
 
@@ -366,8 +367,8 @@ namespace semantic_mapping {
      */
     void GeometricEdgeMap::init_color(int size) {
         m_colors.resize(size);
-        std::random_device rnd;
-        std::mt19937 mt(rnd());
+//        std::random_device rnd;
+        std::mt19937 mt(0);
         std::uniform_int_distribution<> rand100(0, 255);
         for (auto &color:m_colors) {
             int r, g, b;

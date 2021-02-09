@@ -12,6 +12,7 @@
 #include <actionlib/client/simple_client_goal_state.h>
 #include <cv_bridge/cv_bridge.h>
 #include <opencv2/highgui/highgui.hpp>
+#include <random>
 
 
 namespace semantic_mapping {
@@ -66,8 +67,8 @@ namespace semantic_mapping {
         cv_image.copyTo(cv_mask);
         cv::Scalar bounding_box_colors[int(segments.segments.size())];
         cv::Scalar text_color(255, 255, 255);
-        std::random_device rnd;
-        std::mt19937 mt(rnd());
+//        std::random_device rnd;
+        std::mt19937 mt(0);
         std::uniform_int_distribution<> rand100(0, 255);
         for (auto &color:bounding_box_colors) {
             color = cv::Scalar(rand100(mt), rand100(mt), rand100(mt));

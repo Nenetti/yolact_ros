@@ -7,6 +7,7 @@
 #include <semantic_mapping/Filter.h>
 #include <omp.h>
 #include <cv_bridge/cv_bridge.h>
+#include <random>
 
 namespace segmentation_server {
 
@@ -261,8 +262,8 @@ namespace segmentation_server {
      */
     void SemanticMapping::init_color(int size) {
         m_colors.resize(size);
-        std::random_device rnd;
-        std::mt19937 mt(rnd());
+//        std::random_device rnd;
+        std::mt19937 mt(0);
         std::uniform_int_distribution<> rand100(0, 255);
         for (auto &color:m_colors) {
             int r, g, b;

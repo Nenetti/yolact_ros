@@ -65,6 +65,7 @@
 #include <sensor_msgs/Image.h>
 #include <pcl/registration/icp.h>
 #include <visualization_msgs/MarkerArray.h>
+#include <random>
 
 using namespace pcl;
 using namespace std;
@@ -241,8 +242,8 @@ namespace octomap_server {
 
         m_geometric_edge_map.set_filter(m_groundFilterPlaneDistance, m_pointcloudMaxZ);
 
-        std::random_device rnd;
-        std::mt19937 mt(rnd());
+//        std::random_device rnd;
+        std::mt19937 mt(0);
         std::uniform_int_distribution<> rand100(0, 255);
         for (int i = 0; i < 320000; ++i) {
             custom_octomap::Color color(rand100(mt), rand100(mt), rand100(mt));
